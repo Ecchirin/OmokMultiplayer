@@ -73,6 +73,20 @@ public class ServerConnection : MonoBehaviour {
 
         data = Encoding.ASCII.GetBytes(Cube.position.ToString());
         server.SendTo(data, data.Length, SocketFlags.None, ipep);
+    }
 
+    public void SendName(string PlayerPrefName)
+    {
+        byte[] data = new byte[1024];
+        data = Encoding.ASCII.GetBytes(PlayerPrefs.GetString(PlayerPrefName,"User"));
+        server.SendTo(data, data.Length, SocketFlags.None, ipep);
+    }
+
+    private void OnApplicationQuit()
+    {
+        if (ipep == null)
+            return;
+        Debug.Log("Disconnecting from server...");
+        server.Shutdown(SocketShutdown.Send);
     }
 }

@@ -24,7 +24,7 @@ public class Connect_To_Server : MonoBehaviour {
     [SerializeField]
     Text connectionDisplay = null;
     [SerializeField]
-    string serverServiceTagName = "";
+    string serverServiceTagName = "ServerService";
 
     //Current system status
     //ConnectionStatus newStatus = ConnectionStatus.NOT_CONNECTING;
