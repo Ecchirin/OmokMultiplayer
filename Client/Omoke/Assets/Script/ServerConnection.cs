@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -7,12 +7,12 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
-public class NetworkManager : MonoBehaviour
-{
+public class ServerConnection : MonoBehaviour {
+
     public Transform Cube;
 
     byte[] data = new byte[1024];
-    IPEndPoint ipep = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9050);
+    IPEndPoint ipep = new IPEndPoint(IPAddress.Parse("192.168.0.22"), 7777);
     Socket server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
     private void Start()
