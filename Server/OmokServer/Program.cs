@@ -61,19 +61,21 @@ namespace OmokServer
 
         public ThreadedTCPServer()
         {
-            //IPAddress ipAddress = Dns.Resolve("localhost").AddressList[0];
-            ////IPAddress ipAddress = Dns.GetHostAddresses(Dns.GetHostName())[0];
-            //Console.WriteLine(ipAddress.ToString());
-            //try
-            //{
-            //    client = new TcpListener(ipAddress, 13);
-            //}
-            //catch (Exception e)
-            //{
-            //    Console.WriteLine(e.ToString());
-            //}
+            //IPAddress ipAddress = Dns.Resolve("192.168.0.22").AddressList[0];
+            //IPAddress ipAddress = Dns.GetHostAddresses(Dns.GetHostName())[0];
+            //IPAddress iPAddress("192.168.0.22");
+            IPAddress ipAddress = IPAddress.Parse("192.168.0.22");
+            Console.WriteLine(ipAddress.ToString());
+            try
+            {
+                client = new TcpListener(ipAddress, 7777);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
 
-            client = new TcpListener(9050);
+            //client = new TcpListener(9050);
             client.Start();
 
             Console.WriteLine("Waiting for clients...");
