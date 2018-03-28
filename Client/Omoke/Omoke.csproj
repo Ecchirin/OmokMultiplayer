@@ -82,6 +82,7 @@
     <Compile Include="Assets\Script\Board_Container.cs" />
     <Compile Include="Assets\Script\Connect_To_Server.cs" />
     <Compile Include="Assets\Script\Game_Setup.cs" />
+    <Compile Include="Assets\Script\Make_Singleton.cs" />
     <Compile Include="Assets\Script\ServerConnection.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

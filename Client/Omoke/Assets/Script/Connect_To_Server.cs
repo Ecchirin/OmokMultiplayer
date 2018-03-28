@@ -7,12 +7,12 @@ using UnityEngine.UI;
  * This class manages the starting screen and calls to server
  */
 
-enum ConnectionStatus
-{
-    NOT_CONNECTING,
-    CONNECTING,
-    CONNECTED,
-};
+//enum ConnectionStatus
+//{
+//    NOT_CONNECTING,
+//    CONNECTING,
+//    CONNECTED,
+//};
 
 public class Connect_To_Server : MonoBehaviour {
 
@@ -23,13 +23,15 @@ public class Connect_To_Server : MonoBehaviour {
     Text inputFieldText = null;
     [SerializeField]
     Text connectionDisplay = null;
+    [SerializeField]
+    string serverServiceTagName = "";
 
     //Current system status
-    ConnectionStatus newStatus = ConnectionStatus.NOT_CONNECTING;
+    //ConnectionStatus newStatus = ConnectionStatus.NOT_CONNECTING;
 
 	// Use this for initialization
 	void Start () {
-        newStatus = ConnectionStatus.NOT_CONNECTING;
+        //newStatus = ConnectionStatus.NOT_CONNECTING;
     }
 	
 	// Update is called once per frame
@@ -40,7 +42,13 @@ public class Connect_To_Server : MonoBehaviour {
     // This function is for the connection to the server
     public void ServerConnect()
     {
-        StartCoroutine(DisplayText("TESTING", 3));
+        if(inputFieldText.text.Length == 0)
+        {
+            StartCoroutine(DisplayText("Input a Server Address", 3));
+            return;
+        }
+        StartCoroutine(DisplayText("Connecting to " + inputFieldText.text, 3));
+        GameObject.FindGameObjectWithTag(serverServiceTagName).GetComponent<ServerConnection>().ConnecToServer(inputFieldText.text);
     }
 
     public IEnumerator DisplayText(string text, float time) {

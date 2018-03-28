@@ -10,15 +10,44 @@ using System.Text;
 public class ServerConnection : MonoBehaviour {
 
     public Transform Cube;
+    public String serverIP_Display;
 
     byte[] data = new byte[1024];
-    IPEndPoint ipep = new IPEndPoint(IPAddress.Parse("192.168.0.22"), 7777);
+    IPEndPoint ipep = null;
     Socket server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
     private void Start()
     {
-        Debug.Log(Cube.position);
 
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        if (Input.GetKey(KeyCode.H) && ipep != null)
+        {
+            Debug.Log("Sending Position");
+
+            byte[] data = new byte[1024];
+            data = Encoding.ASCII.GetBytes(Cube.position.ToString());
+            server.SendTo(data, data.Length, SocketFlags.None, ipep);
+
+            Debug.Log("Function Ended");
+        }
+
+        if (Input.GetKey(KeyCode.S) && ipep != null)
+        {
+            Debug.Log("Disconnecting from server...");
+            server.Shutdown(SocketShutdown.Send);
+            //server.Close();
+        }
+    }
+
+    public void ConnecToServer(String serverIP)
+    {
+        serverIP_Display = serverIP;
+        Debug.Log(Cube.position);
+        ipep = new IPEndPoint(IPAddress.Parse(serverIP), 7777);
         try
         {
             server.Connect(ipep);
@@ -45,26 +74,5 @@ public class ServerConnection : MonoBehaviour {
         data = Encoding.ASCII.GetBytes(Cube.position.ToString());
         server.SendTo(data, data.Length, SocketFlags.None, ipep);
 
-    }
-    // Update is called once per frame
-    void Update()
-    {
-        if (Input.GetKey(KeyCode.H))
-        {
-            Debug.Log("Sending Position");
-
-            byte[] data = new byte[1024];
-            data = Encoding.ASCII.GetBytes(Cube.position.ToString());
-            server.SendTo(data, data.Length, SocketFlags.None, ipep);
-
-            Debug.Log("Function Ended");
-        }
-
-        if (Input.GetKey(KeyCode.S))
-        {
-            Debug.Log("Disconnecting from server...");
-            server.Shutdown(SocketShutdown.Send);
-            //server.Close();
-        }
     }
 }
