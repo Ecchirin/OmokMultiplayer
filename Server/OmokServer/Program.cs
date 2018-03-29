@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using TCPServer;
 
 namespace OmokServer
 {
@@ -57,6 +58,19 @@ namespace OmokServer
     /// </summary>
     public class ThreadedTCPServer
     {
+        public static string GetLocalIPAddress()
+        {
+            IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (IPAddress ip in host.AddressList)
+            {
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    return ip.ToString();
+                }
+            }
+            throw new Exception("No network adapters with an IPv4 address in the system!");
+        }
+
         private TcpListener client;
 
         public ThreadedTCPServer()
@@ -64,7 +78,7 @@ namespace OmokServer
             //IPAddress ipAddress = Dns.Resolve("192.168.0.22").AddressList[0];
             //IPAddress ipAddress = Dns.GetHostAddresses(Dns.GetHostName())[0];
             //IPAddress iPAddress("192.168.0.22");
-            IPAddress ipAddress = IPAddress.Parse("192.168.0.22");
+            IPAddress ipAddress = IPAddress.Parse(GetLocalIPAddress());
             Console.WriteLine(ipAddress.ToString());
             try
             {
