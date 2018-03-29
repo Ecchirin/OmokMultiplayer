@@ -145,5 +145,11 @@ namespace TCPServer
 
             return queueOfMessages.Dequeue();
         }
+
+        public void ShutdownThread()
+        {
+            if (recvThread != null)
+                recvThread.Abort();
+        }
     }
 }
