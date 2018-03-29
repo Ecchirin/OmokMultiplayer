@@ -125,6 +125,17 @@ namespace TCPServer
         //    }
         //}
 
+        public void TestRecieve()
+        {
+            byte[] data = new byte[1024];
+            int recv = ns.Read(data, 0, data.Length);
+
+            if (recv == 0)
+                return;
+
+            queueOfMessages.Enqueue(String.Format(Encoding.ASCII.GetString(data, 0, recv)));
+        }
+
         void RecieveMessage()
         {
             while (true)

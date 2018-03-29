@@ -32,6 +32,12 @@ namespace OmokServer
             client.NoDelay = true;
 
             ns.Write(data, 0, data.Length);
+            ns.Write(data, 0, data.Length);
+            ns.Write(data, 0, data.Length);
+            ns.Write(data, 0, data.Length);
+            ns.Write(data, 0, data.Length);
+            ns.Write(data, 0, data.Length);
+            ns.Write(data, 0, data.Length);
 
             while (true)
             {
