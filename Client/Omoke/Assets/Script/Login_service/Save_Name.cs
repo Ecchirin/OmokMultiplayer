@@ -24,12 +24,10 @@ public class Save_Name : MonoBehaviour {
     // Use this for initialization
     void Start () {
         //nameFieldGroup = this.transform.parent.gameObject;
-	}
-	
-	//// Update is called once per frame
-	//void Update () {
-		
-	//}
+        if (inputFieldText != null)
+            inputFieldText.transform.parent.GetComponent<InputField>().text = PlayerPrefs.GetString(playerPrefNameTag, "Default001");
+
+    }
 
     public void SaveName()
     {

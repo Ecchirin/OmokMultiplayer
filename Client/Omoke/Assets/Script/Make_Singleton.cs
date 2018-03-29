@@ -13,4 +13,9 @@ public class Make_Singleton : MonoBehaviour {
 	void Start () {
         DontDestroyOnLoad(this);
 	}
+
+    // Use only when going to a scene with the same object again
+    public void DestroyThisGameObject() {
+        Destroy(this);
+    }
 }

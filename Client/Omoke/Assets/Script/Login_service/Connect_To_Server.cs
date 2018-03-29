@@ -29,15 +29,10 @@ public class Connect_To_Server : MonoBehaviour {
     //Current system status
     //ConnectionStatus newStatus = ConnectionStatus.NOT_CONNECTING;
 
-	// Use this for initialization
-	void Start () {
+    // Use this for initialization
+    void Start () {
         //newStatus = ConnectionStatus.NOT_CONNECTING;
     }
-	
-	// Update is called once per frame
-	//void Update () {
-		
-	//}
 
     // This function is for the connection to the server
     public void ServerConnect()
@@ -47,7 +42,8 @@ public class Connect_To_Server : MonoBehaviour {
             StartCoroutine(DisplayText("Input a Server Address", 3));
             return;
         }
-        StartCoroutine(DisplayText("Connecting to " + inputFieldText.text, 3));
+        StartCoroutine(DisplayText("Connecting to " + inputFieldText.text, 5));
+        //newStatus = ConnectionStatus.CONNECTING;
         GameObject.FindGameObjectWithTag(serverServiceTagName).GetComponent<ServerConnection>().ConnecToServer(inputFieldText.text);
     }
 
@@ -57,5 +53,10 @@ public class Connect_To_Server : MonoBehaviour {
         yield return new WaitForSeconds(time);
         connectionDisplay.GetComponent<Text>().text = "";
         connectionDisplay.GetComponent<Text>().enabled = false;
+        //if(newStatus == ConnectionStatus.CONNECTING)
+        //{
+        //    newStatus = ConnectionStatus.NOT_CONNECTING;
+        //    StartCoroutine(DisplayText("Error Cannot Reach Server Try Again", 3));
+        //}
     }
 }

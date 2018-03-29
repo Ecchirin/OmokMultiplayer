@@ -77,14 +77,17 @@
     <Reference Include="UnityEngine.HoloLens">
       <HintPath>D:/Unity/Editor/Data/UnityExtensions/Unity/UnityHoloLens/RuntimeEditor/UnityEngine.HoloLens.dll</HintPath>
     </Reference>
+    <Reference Include="TCPServer">
+      <HintPath>Assets/TCPServer.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Script\Board_Container.cs" />
-    <Compile Include="Assets\Script\Connect_To_Server.cs" />
     <Compile Include="Assets\Script\Game_Setup.cs" />
+    <Compile Include="Assets\Script\Login_service\Connect_To_Server.cs" />
+    <Compile Include="Assets\Script\Login_service\Save_Name.cs" />
+    <Compile Include="Assets\Script\Login_service\ServerConnection.cs" />
     <Compile Include="Assets\Script\Make_Singleton.cs" />
-    <Compile Include="Assets\Script\Save_Name.cs" />
-    <Compile Include="Assets\Script\ServerConnection.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="GenerateTargetFrameworkMonikerAttribute" />
