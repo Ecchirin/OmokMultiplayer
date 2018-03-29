@@ -12,14 +12,15 @@ using TCPServer;
 
 public enum ConnectionStatus
 {
-    NOT_CONNECTING,
+    NOT_CONNECTING = 0,
     CONNECTING,
     CONNECTED,
 };
 
 public class ServerConnection : MonoBehaviour {
 
-    public Transform Cube;
+    public TextDisplay showText = null;
+
     public String serverIP_Display;
 
     ConnectionClass server = null;
@@ -44,6 +45,8 @@ public class ServerConnection : MonoBehaviour {
         if (Input.GetKey(KeyCode.S) && server != null)
         {
             Debug.Log("Disconnecting from server...");
+            if (showText)
+                showText.StartCoroutine(showText.DisplayText("Disconnecting from server...", 3));
             server.DisconnectFromServer();
         }
     }
@@ -51,8 +54,8 @@ public class ServerConnection : MonoBehaviour {
     public void ConnecToServer(String serverIP)
     {
         cts_connection_status = ConnectionStatus.CONNECTING;
-        serverIP_Display = serverIP;
-        Debug.Log(Cube.position);
+        if (showText)
+            showText.StartCoroutine(showText.DisplayText("Connecting to server", 3));
         server = new ConnectionClass(serverIP, 7777);
         if (server.ConnectToServer())
             Debug.Log("Connected");
@@ -60,14 +63,15 @@ public class ServerConnection : MonoBehaviour {
         {
             Debug.Log("Unable to connect");
             cts_connection_status = ConnectionStatus.NOT_CONNECTING;
+            if (showText)
+                showText.StartCoroutine(showText.DisplayText("Cannot connect to server try again", 3));
             return;
         }
-
-        IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
-        EndPoint tmpRemote = (EndPoint)sender;
-
-        Debug.Log(String.Format("Message received from {0}:", tmpRemote.ToString()));
         cts_connection_status = ConnectionStatus.CONNECTED;
+        if (showText)
+            showText.StartCoroutine(showText.DisplayText("Connection established", 3));
+
+        //Debug.Log(server.RecieveMessage());
     }
 
     public void SendName(string PlayerPrefName)
@@ -80,7 +84,14 @@ public class ServerConnection : MonoBehaviour {
         if (server == null)
             return;
         Debug.Log("Disconnecting from server...");
+        if (showText)
+            showText.StartCoroutine(showText.DisplayText("Disconnecting from server...", 3));
         cts_connection_status = ConnectionStatus.NOT_CONNECTING;
         server.DisconnectFromServer();
+    }
+
+    public ConnectionStatus GetStatus()
+    {
+        return cts_connection_status;
     }
 }
