@@ -44,7 +44,6 @@ namespace TCPServer
         {
             ipep = new IPEndPoint(IPAddress.Parse(theIpAddress), portNumber);
             server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            ns = new NetworkStream(server);
             queueOfMessages = new Queue<string>();
 
             if (recvThread != null)
@@ -82,6 +81,8 @@ namespace TCPServer
             {
                 return false;
             }
+
+            ns = new NetworkStream(server);
 
             return true;
         }
