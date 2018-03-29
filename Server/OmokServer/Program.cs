@@ -29,6 +29,8 @@ namespace OmokServer
 
             string welcome = "Welcome to my test server";
             data = Encoding.ASCII.GetBytes(welcome);
+            client.NoDelay = true;
+
             ns.Write(data, 0, data.Length);
 
             while (true)
