@@ -33,9 +33,7 @@ namespace TCPServer
     {
         IPEndPoint ipep;
         Socket server;
-
-        IPEndPoint sender;
-        EndPoint tmpRemote;
+        NetworkStream ns;
 
         private Thread recvThread = null;
 
@@ -46,8 +44,7 @@ namespace TCPServer
         {
             ipep = new IPEndPoint(IPAddress.Parse(theIpAddress), portNumber);
             server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            sender = new IPEndPoint(IPAddress.Any, 0);
-            tmpRemote = (EndPoint)sender;
+            ns = new NetworkStream(server);
             queueOfMessages = new Queue<string>();
 
             if (recvThread != null)
@@ -132,8 +129,7 @@ namespace TCPServer
             while (true)
             {
                 byte[] data = new byte[1024];
-                int recv = server.ReceiveFrom(data, ref tmpRemote);
-
+                int recv = ns.Read(data, 0, data.Length);
                 queueOfMessages.Enqueue(String.Format(Encoding.ASCII.GetString(data, 0, recv)));
             }
         }
