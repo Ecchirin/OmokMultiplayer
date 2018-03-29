@@ -131,16 +131,22 @@ namespace TCPServer
             {
                 byte[] data = new byte[1024];
                 int recv = ns.Read(data, 0, data.Length);
-                queueOfMessages.Enqueue(String.Format(Encoding.ASCII.GetString(data, 0, recv)));
+                if (recv == 0)
+                    break;
+
+                lock(queueOfMessages)
+                    queueOfMessages.Enqueue(String.Format(Encoding.ASCII.GetString(data, 0, recv)));
             }
         }
 
         public string RecieveFromQueue()
         {
-            if (queueOfMessages.Count == 0)
+            lock (queueOfMessages)
+                if (queueOfMessages.Count == 0)
                 return "";
 
-            return queueOfMessages.Dequeue();
+            lock (queueOfMessages)
+                return queueOfMessages.Dequeue();
         }
 
         public void ShutdownThread()
