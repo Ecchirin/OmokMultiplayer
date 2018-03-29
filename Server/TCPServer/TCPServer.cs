@@ -125,16 +125,19 @@ namespace TCPServer
         //    }
         //}
 
-        public void TestRecieve()
+        public string TestRecieve()
         {
             byte[] data = new byte[1024];
             int recv = ns.Read(data, 0, data.Length);
 
             if (recv == 0)
-                return;
+                return "Disconnected";
+            //queueOfMessages.Enqueue(String.Format(Encoding.ASCII.GetString(data, 0, recv)));
 
             if (String.Format(Encoding.ASCII.GetString(data, 0, recv)) != "")
-                queueOfMessages.Enqueue(String.Format(Encoding.ASCII.GetString(data, 0, recv)));
+                return String.Format(Encoding.ASCII.GetString(data, 0, recv));
+            else
+                return "Blank Message?";
         }
 
         void RecieveMessage()
