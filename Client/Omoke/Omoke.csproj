@@ -89,6 +89,7 @@
     <Compile Include="Assets\Script\Login_service\ServerConnection.cs" />
     <Compile Include="Assets\Script\Login_service\TextDisplay.cs" />
     <Compile Include="Assets\Script\Make_Singleton.cs" />
+    <Compile Include="Assets\Script\SceneChange.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="GenerateTargetFrameworkMonikerAttribute" />
