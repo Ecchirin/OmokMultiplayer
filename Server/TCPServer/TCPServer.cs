@@ -138,7 +138,7 @@ namespace TCPServer
             }
         }
 
-        string RecieveFromQueue()
+        public string RecieveFromQueue()
         {
             if (queueOfMessages.Count == 0)
                 return "";
