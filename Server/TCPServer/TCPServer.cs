@@ -133,7 +133,8 @@ namespace TCPServer
             if (recv == 0)
                 return;
 
-            queueOfMessages.Enqueue(String.Format(Encoding.ASCII.GetString(data, 0, recv)));
+            if (String.Format(Encoding.ASCII.GetString(data, 0, recv)) != "")
+                queueOfMessages.Enqueue(String.Format(Encoding.ASCII.GetString(data, 0, recv)));
         }
 
         void RecieveMessage()
@@ -152,11 +153,11 @@ namespace TCPServer
 
         public string RecieveFromQueue()
         {
-            lock (queueOfMessages)
+            //lock (queueOfMessages)
                 if (queueOfMessages.Count == 0)
-                return "";
+                return "No Count";
 
-            lock (queueOfMessages)
+            //lock (queueOfMessages)
                 return queueOfMessages.Dequeue();
         }
 
