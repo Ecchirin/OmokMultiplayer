@@ -36,6 +36,8 @@ public class ServerConnection : MonoBehaviour {
     // Update is called once per frame
     void Update()
     {
+        if (server == null)
+            return;
         //All these should change later
         if (Input.GetKey(KeyCode.H) && server != null)
         {
@@ -47,7 +49,13 @@ public class ServerConnection : MonoBehaviour {
             Debug.Log("Disconnecting from server...");
             if (showText)
                 showText.StartCoroutine(showText.DisplayText("Disconnecting from server...", 3));
+            server.ShutdownThread();
             server.DisconnectFromServer();
+        }
+
+        if(server.RecieveFromQueue() != "")
+        {
+            Debug.Log(server.RecieveFromQueue());
         }
     }
 
@@ -70,8 +78,6 @@ public class ServerConnection : MonoBehaviour {
         cts_connection_status = ConnectionStatus.CONNECTED;
         if (showText)
             showText.StartCoroutine(showText.DisplayText("Connection established", 3));
-
-        //Debug.Log(server.RecieveMessage());
     }
 
     public void SendName(string PlayerPrefName)
@@ -87,6 +93,7 @@ public class ServerConnection : MonoBehaviour {
         if (showText)
             showText.StartCoroutine(showText.DisplayText("Disconnecting from server...", 3));
         cts_connection_status = ConnectionStatus.NOT_CONNECTING;
+        server.ShutdownThread();
         server.DisconnectFromServer();
     }
 
