@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 
 namespace TCPServer
 {
@@ -36,6 +37,10 @@ namespace TCPServer
         IPEndPoint sender;
         EndPoint tmpRemote;
 
+        private Thread recvThread = null;
+
+        Queue<String> queueOfMessages;
+
         //Constructor to setup the struct
         public ConnectionClass(string theIpAddress, Int32 portNumber)
         {
@@ -43,6 +48,16 @@ namespace TCPServer
             server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             sender = new IPEndPoint(IPAddress.Any, 0);
             tmpRemote = (EndPoint)sender;
+            queueOfMessages = new Queue<string>();
+
+            if (recvThread != null)
+                recvThread.Abort();
+            else
+            {
+                recvThread = new Thread(new ThreadStart(RecieveMessage));
+                recvThread.IsBackground = true;
+                recvThread.Start();
+            }
         }
 
         //This region contains the section to change ip or port
@@ -112,13 +127,23 @@ namespace TCPServer
         //    }
         //}
 
-        public string RecieveMessage()
+        void RecieveMessage()
         {
-            byte[] data = new byte[1024];
-            int recv = server.ReceiveFrom(data, ref tmpRemote);
+            while (true)
+            {
+                byte[] data = new byte[1024];
+                int recv = server.ReceiveFrom(data, ref tmpRemote);
 
-            return String.Format(Encoding.ASCII.GetString(data, 0, recv));
+                queueOfMessages.Enqueue(String.Format(Encoding.ASCII.GetString(data, 0, recv)));
+            }
         }
 
+        string RecieveFromQueue()
+        {
+            if (queueOfMessages.Count == 0)
+                return "";
+
+            return queueOfMessages.Dequeue();
+        }
     }
 }
