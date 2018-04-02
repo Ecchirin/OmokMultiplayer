@@ -11,6 +11,7 @@ namespace TCPServer
     {
         SET_NAME_PACKET = 1,
         PLACEMENT_PACKET,
+        END_OF_PACKET,
         TOTAL_TYPES_OF_PACKETS,
     }
 
@@ -149,7 +150,7 @@ namespace TCPServer
                     break;
                 bytesRead += chunk;
 
-                if (Encoding.ASCII.GetString(data, 0, chunk).Substring(Encoding.ASCII.GetString(data, 0, chunk).Length - 5, 1) == "#END")
+                if (Encoding.ASCII.GetString(data, 0, chunk).Substring(Encoding.ASCII.GetString(data, 0, chunk).Length - 2, 1) == PACKET_TYPE.END_OF_PACKET.ToString())
                     break;
             }
 
@@ -180,7 +181,7 @@ namespace TCPServer
                         break;
                     bytesRead += chunk;
 
-                    if (Encoding.ASCII.GetString(data, 0, chunk).Substring(Encoding.ASCII.GetString(data, 0, chunk).Length - 5, 1) == "#END")
+                    if (Encoding.ASCII.GetString(data, 0, chunk).Substring(Encoding.ASCII.GetString(data, 0, chunk).Length - 2, 1) == PACKET_TYPE.END_OF_PACKET.ToString())
                         break;
                 }
 
