@@ -145,11 +145,15 @@ namespace TCPServer
 
             while (true)
             {
-                chunk = ns.Read(data, (int)bytesRead, data.Length - (int)bytesRead);
-                if (chunk == 0)
-                    break;
-                bytesRead += chunk;
+                //chunk = ns.Read(data, (int)bytesRead, data.Length - (int)bytesRead);
+                //if (chunk == 0)
+                //    break;
+                //bytesRead += chunk;
 
+                //if (Encoding.ASCII.GetString(data, 0, chunk).Substring(Encoding.ASCII.GetString(data, 0, chunk).Length - 2, 1) == PACKET_TYPE.END_OF_PACKET.ToString())
+                //    break;
+
+                chunk = ns.Read(data, 0, data.Length);
                 if (Encoding.ASCII.GetString(data, 0, chunk).Substring(Encoding.ASCII.GetString(data, 0, chunk).Length - 2, 1) == PACKET_TYPE.END_OF_PACKET.ToString())
                     break;
             }
@@ -176,11 +180,15 @@ namespace TCPServer
 
                 while (bytesRead < 1024)
                 {
-                    chunk = ns.Read(data, (int)bytesRead, data.Length - (int)bytesRead);
-                    if (chunk == 0)
-                        break;
-                    bytesRead += chunk;
+                    //chunk = ns.Read(data, (int)bytesRead, data.Length - (int)bytesRead);
+                    //if (chunk == 0)
+                    //    break;
+                    //bytesRead += chunk;
 
+                    //if (Encoding.ASCII.GetString(data, 0, chunk).Substring(Encoding.ASCII.GetString(data, 0, chunk).Length - 2, 1) == PACKET_TYPE.END_OF_PACKET.ToString())
+                    //    break;
+
+                    chunk = ns.Read(data, 0, data.Length);
                     if (Encoding.ASCII.GetString(data, 0, chunk).Substring(Encoding.ASCII.GetString(data, 0, chunk).Length - 2, 1) == PACKET_TYPE.END_OF_PACKET.ToString())
                         break;
                 }
