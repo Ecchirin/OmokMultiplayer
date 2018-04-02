@@ -128,16 +128,38 @@ namespace TCPServer
         public string TestRecieve()
         {
             byte[] data = new byte[1024];
-            int recv = ns.Read(data, 0, data.Length);
+            //int recv = ns.Read(data, 0, data.Length);
 
-            if (recv == 0)
+            //if (recv == 0)
+            //    return "Disconnected";
+            ////queueOfMessages.Enqueue(String.Format(Encoding.ASCII.GetString(data, 0, recv)));
+
+            //if (String.Format(Encoding.ASCII.GetString(data, 0, recv)) != "")
+            //    return String.Format(Encoding.ASCII.GetString(data, 0, recv));
+            //else
+            //    return "Blank Message?";
+
+            int bytesRead = 0;
+            int chunk = 0;
+
+            while (bytesRead < 1024)
+            {
+                chunk = ns.Read(data, (int)bytesRead, data.Length - (int)bytesRead);
+                if (chunk == 0)
+                    break;
+                bytesRead += chunk;
+            }
+
+            if (chunk == 0)
                 return "Disconnected";
-            //queueOfMessages.Enqueue(String.Format(Encoding.ASCII.GetString(data, 0, recv)));
 
-            if (String.Format(Encoding.ASCII.GetString(data, 0, recv)) != "")
-                return String.Format(Encoding.ASCII.GetString(data, 0, recv));
+            if (String.Format(Encoding.ASCII.GetString(data, 0, chunk)) != "")
+                return String.Format(Encoding.ASCII.GetString(data, 0, chunk));
             else
                 return "Blank Message?";
+
+            //lock (queueOfMessages)
+            //    queueOfMessages.Enqueue(String.Format(new ASCIIEncoding().GetString(data)));
         }
 
         void RecieveMessage()
@@ -145,12 +167,27 @@ namespace TCPServer
             while (true)
             {
                 byte[] data = new byte[1024];
-                int recv = ns.Read(data, 0, data.Length);
-                if (recv == 0)
+                int bytesRead = 0;
+                int chunk = 0;
+
+                while (bytesRead < 1024)
+                {
+                    chunk = ns.Read(data, (int)bytesRead, data.Length - (int)bytesRead);
+                    if (chunk == 0)
+                        break;
+                    bytesRead += chunk;
+                }
+
+                if (chunk == 0)
                     break;
 
+                //int recv = ns.Read(data, 0, data.Length);
+                //if (recv == 0)
+                //    break;
+
                 lock(queueOfMessages)
-                    queueOfMessages.Enqueue(String.Format(Encoding.ASCII.GetString(data, 0, recv)));
+                    queueOfMessages.Enqueue(String.Format(new ASCIIEncoding().GetString(data)));
+                //queueOfMessages.Enqueue(String.Format(Encoding.ASCII.GetString(data, 0, chunk)));
             }
         }
 

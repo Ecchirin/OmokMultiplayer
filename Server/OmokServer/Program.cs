@@ -29,14 +29,8 @@ namespace OmokServer
 
             string welcome = "Welcome to my test server";
             data = Encoding.ASCII.GetBytes(welcome);
-            client.NoDelay = true;
+            //client.NoDelay = true;
 
-            ns.Write(data, 0, data.Length);
-            ns.Write(data, 0, data.Length);
-            ns.Write(data, 0, data.Length);
-            ns.Write(data, 0, data.Length);
-            ns.Write(data, 0, data.Length);
-            ns.Write(data, 0, data.Length);
             ns.Write(data, 0, data.Length);
 
             while (true)
@@ -48,8 +42,20 @@ namespace OmokServer
 
                 Console.WriteLine("Message received from {0}:", ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString());
                 Console.WriteLine(Encoding.ASCII.GetString(data, 0, recv));
-
-                ns.Write(data, 0, recv);
+                
+                if (Encoding.ASCII.GetString(data, 0, recv).Substring(0, 1) == PACKET_TYPE.PLACEMENT_PACKET.ToString())
+                {
+                    //ns.Write(data, 0, recv);
+                    data = new byte[1024];
+                    data = Encoding.ASCII.GetBytes("I've got your placement message! Thanks!");
+                    ns.Write(data, 0, recv);
+                }
+                else
+                {
+                    data = new byte[1024];
+                    data = Encoding.ASCII.GetBytes("You sent me a packet that did not contain a placement message!");
+                    ns.Write(data, 0, recv);
+                }
             }
             ns.Close();
             client.Close();
