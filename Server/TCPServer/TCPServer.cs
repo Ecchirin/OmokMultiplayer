@@ -142,12 +142,15 @@ namespace TCPServer
             int bytesRead = 0;
             int chunk = 0;
 
-            while (bytesRead < 1024)
+            while (true)
             {
                 chunk = ns.Read(data, (int)bytesRead, data.Length - (int)bytesRead);
                 if (chunk == 0)
                     break;
                 bytesRead += chunk;
+
+                if (Encoding.ASCII.GetString(data, 0, chunk).Substring(Encoding.ASCII.GetString(data, 0, chunk).Length - 5, 1) == "#END")
+                    break;
             }
 
             if (chunk == 0)
@@ -176,6 +179,9 @@ namespace TCPServer
                     if (chunk == 0)
                         break;
                     bytesRead += chunk;
+
+                    if (Encoding.ASCII.GetString(data, 0, chunk).Substring(Encoding.ASCII.GetString(data, 0, chunk).Length - 5, 1) == "#END")
+                        break;
                 }
 
                 if (chunk == 0)

@@ -27,9 +27,9 @@ namespace OmokServer
             Console.WriteLine("New client accepted: {0} active connections",
                               connections);
 
-            string welcome = "Welcome to my test server";
+            string welcome = "Welcome to my test server! #END";
             data = Encoding.ASCII.GetBytes(welcome);
-            //client.NoDelay = true;
+            client.NoDelay = true;
 
             ns.Write(data, 0, data.Length);
 
@@ -47,13 +47,13 @@ namespace OmokServer
                 {
                     //ns.Write(data, 0, recv);
                     data = new byte[1024];
-                    data = Encoding.ASCII.GetBytes("I've got your placement message! Thanks!");
+                    data = Encoding.ASCII.GetBytes("I've got your placement message! Thanks! #END");
                     ns.Write(data, 0, recv);
                 }
                 else
                 {
                     data = new byte[1024];
-                    data = Encoding.ASCII.GetBytes("You sent me a packet that did not contain a placement message!");
+                    data = Encoding.ASCII.GetBytes("You sent me a packet that did not contain a placement message! #END");
                     ns.Write(data, 0, recv);
                 }
             }
