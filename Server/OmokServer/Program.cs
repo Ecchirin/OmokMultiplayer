@@ -35,15 +35,33 @@ namespace OmokServer
 
             while (true)
             {
-                data = new byte[1024];
-                recv = ns.Read(data, 0, data.Length);
-                if (recv == 0)
-                    break;
+                //data = new byte[1024];
+                //recv = ns.Read(data, 0, data.Length);
+                //if (recv == 0)
+                //    break;
+                StringBuilder fullPacketMessage = new StringBuilder();
+
+                if (ns.CanRead)
+                {
+                    data = new byte[client.ReceiveBufferSize];
+                    int numbersOfBytesRead;
+
+                    do
+                    {
+                        numbersOfBytesRead = ns.Read(data, 0, data.Length);
+                        if (numbersOfBytesRead <= 0)
+                            break;
+                        fullPacketMessage.AppendFormat("{0}", Encoding.ASCII.GetString(data, 0, numbersOfBytesRead));
+                    } while (ns.DataAvailable);
+
+                    
+                }
 
                 Console.WriteLine("Message received from {0}:", ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString());
-                Console.WriteLine(Encoding.ASCII.GetString(data, 0, recv));
-                
-                if (Encoding.ASCII.GetString(data, 0, recv).Contains(PACKET_TYPE.PLACEMENT_PACKET.ToString()))
+                // Console.WriteLine(Encoding.ASCII.GetString(data, 0, recv));
+                Console.WriteLine(fullPacketMessage.ToString());
+
+                if (fullPacketMessage.ToString().Contains(PACKET_TYPE.PLACEMENT_PACKET.ToString()))
                 {
                     //ns.Write(data, 0, recv);
                     data = new byte[1024];

@@ -122,6 +122,8 @@ namespace TCPServer
         public void DisconnectFromServer()
         {
             //server.Shutdown(SocketShutdown.Send);
+            //ns.Write(SocketShutdown.Send);
+            client.Client.Shutdown(SocketShutdown.Both);
             client.GetStream().Close();
             client.Close();
         }
