@@ -17,6 +17,8 @@ namespace TCPServer
     {
         SET_NAME_PACKET = 1,
         PLACEMENT_PACKET,
+        PLAYER_LIST,
+        MAP_DATA,
         END_OF_PACKET,
         TOTAL_TYPES_OF_PACKETS,
     }
