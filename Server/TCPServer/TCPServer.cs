@@ -4,6 +4,10 @@ using System.Text;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.IO;
+
+//https://stackoverflow.com/questions/12652791/tcp-client-server-client-doesnt-always-read?rq=1
+//Test build tmr from here.
 
 namespace TCPServer
 {
@@ -32,8 +36,9 @@ namespace TCPServer
 
     public class ConnectionClass
     {
-        IPEndPoint ipep;
-        Socket server;
+        //IPEndPoint ipep;
+        //Socket server;
+        TcpClient client;
         NetworkStream ns;
 
         private Thread recvThread = null;
@@ -43,31 +48,32 @@ namespace TCPServer
         //Constructor to setup the struct
         public ConnectionClass(string theIpAddress, Int32 portNumber)
         {
-            ipep = new IPEndPoint(IPAddress.Parse(theIpAddress), portNumber);
-            server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            //ipep = new IPEndPoint(IPAddress.Parse(theIpAddress), portNumber);
+            //server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            client.Connect(theIpAddress, portNumber);
             queueOfMessages = new Queue<string>();
 
-            if (recvThread != null)
-                recvThread.Abort();
-            else
-            {
-                recvThread = new Thread(new ThreadStart(RecieveMessage));
-                recvThread.IsBackground = true;
-                recvThread.Start();
-            }
+            //if (recvThread != null)
+            //    recvThread.Abort();
+            //else
+            //{
+            //    recvThread = new Thread(new ThreadStart(RecieveMessage));
+            //    recvThread.IsBackground = true;
+            //    recvThread.Start();
+            //}
         }
 
         //This region contains the section to change ip or port
         #region Change IP or Port
-        public void ChangeIPAddress(string theIpAddress)
-        {
-            ipep.Address = IPAddress.Parse(theIpAddress);
-        }
+        //public void ChangeIPAddress(string theIpAddress)
+        //{
+        //    ipep.Address = IPAddress.Parse(theIpAddress);
+        //}
 
-        public void ChangePort(Int32 portNumber)
-        {
-            ipep.Port = portNumber;
-        }
+        //public void ChangePort(Int32 portNumber)
+        //{
+        //    ipep.Port = portNumber;
+        //}
         #endregion Change IP or Port
 
         //This region handles the connection or disconnection to/from server
@@ -76,21 +82,23 @@ namespace TCPServer
         {
             try
             {
-                server.Connect(ipep);
+                //server.Connect(ipep);
+                //client.Connect()
             }
             catch (SocketException e)
             {
                 return false;
             }
 
-            ns = new NetworkStream(server);
-
+            //ns = new NetworkStream(server);
+            ns = client.GetStream();
             return true;
         }
 
         public void DisconnectFromServer()
         {
-            server.Shutdown(SocketShutdown.Send);
+            //server.Shutdown(SocketShutdown.Send);
+            client.Close();
         }
         #endregion Connect or Disconnect
 
@@ -98,21 +106,26 @@ namespace TCPServer
         {
             byte[] data = new byte[1024];
             data = Encoding.ASCII.GetBytes(packetType.ToString() + ":" + message);
-            server.SendTo(data, data.Length, SocketFlags.None, ipep);
+            //server.SendTo(data, data.Length, SocketFlags.None, ipep);
+            ns.Write(data, 0, data.Length);
         }
 
         public void SendMessage(PACKET_TYPE packetType, int message)
         {
             byte[] data = new byte[1024];
             data = Encoding.ASCII.GetBytes(packetType.ToString() + ":" + message.ToString());
-            server.SendTo(data, data.Length, SocketFlags.None, ipep);
+            //server.SendTo(data, data.Length, SocketFlags.None, ipep);
+            ns.Write(data, 0, data.Length);
+
         }
 
         public void SendPosition(int position)
         {
             byte[] data = new byte[1024];
             data = Encoding.ASCII.GetBytes(PACKET_TYPE.PLACEMENT_PACKET.ToString() + ":" + position.ToString());
-            server.SendTo(data, data.Length, SocketFlags.None, ipep);
+            //server.SendTo(data, data.Length, SocketFlags.None, ipep);
+            ns.Write(data, 0, data.Length);
+
         }
 
         //public GameInformation RecvGameInfo()
@@ -128,7 +141,25 @@ namespace TCPServer
 
         public string TestRecieve()
         {
-            byte[] data = new byte[1024];
+            if (ns.CanRead)
+            {
+                byte[] data = new byte[client.ReceiveBufferSize];
+                StringBuilder fullPacketMessage = new StringBuilder();
+                int numbersOfBytesRead;
+                
+                do
+                {
+                    numbersOfBytesRead = ns.Read(data, 0, data.Length);
+                    if (numbersOfBytesRead <= 0)
+                        break;
+                    fullPacketMessage.AppendFormat("{0}", Encoding.ASCII.GetString(data, 0, numbersOfBytesRead));
+                } while (ns.DataAvailable);
+
+                return fullPacketMessage.ToString();
+            }
+
+            return "Error in recv message!";
+
             //int recv = ns.Read(data, 0, data.Length);
 
             //if (recv == 0)
@@ -140,81 +171,81 @@ namespace TCPServer
             //else
             //    return "Blank Message?";
 
-            int bytesRead = 0;
-            int chunk = 0;
+            //int bytesRead = 0;
+            //int chunk = 0;
 
-            while (true)
-            {
-                //chunk = ns.Read(data, (int)bytesRead, data.Length - (int)bytesRead);
-                //if (chunk == 0)
-                //    break;
-                //bytesRead += chunk;
+            //while (true)
+            //{
+            //    //chunk = ns.Read(data, (int)bytesRead, data.Length - (int)bytesRead);
+            //    //if (chunk == 0)
+            //    //    break;
+            //    //bytesRead += chunk;
 
-                //if (Encoding.ASCII.GetString(data, 0, chunk).Substring(Encoding.ASCII.GetString(data, 0, chunk).Length - 2, 1) == PACKET_TYPE.END_OF_PACKET.ToString())
-                //    break;
+            //    //if (Encoding.ASCII.GetString(data, 0, chunk).Substring(Encoding.ASCII.GetString(data, 0, chunk).Length - 2, 1) == PACKET_TYPE.END_OF_PACKET.ToString())
+            //    //    break;
 
-                chunk = ns.Read(data, 0, data.Length);
-                if (Encoding.ASCII.GetString(data, 0, chunk).Substring(Encoding.ASCII.GetString(data, 0, chunk).Length - 2, 1) == PACKET_TYPE.END_OF_PACKET.ToString())
-                    break;
-            }
+            //    chunk = ns.Read(data, 0, data.Length);
+            //    if (Encoding.ASCII.GetString(data, 0, chunk).Substring(Encoding.ASCII.GetString(data, 0, chunk).Length - 2, 1) == PACKET_TYPE.END_OF_PACKET.ToString())
+            //        break;
+            //}
 
-            if (chunk == 0)
-                return "Disconnected";
+            //if (chunk == 0)
+            //    return "Disconnected";
 
-            if (String.Format(Encoding.ASCII.GetString(data, 0, chunk)) != "")
-                return String.Format(Encoding.ASCII.GetString(data, 0, chunk));
-            else
-                return "Blank Message?";
+            //if (String.Format(Encoding.ASCII.GetString(data, 0, chunk)) != "")
+            //    return String.Format(Encoding.ASCII.GetString(data, 0, chunk));
+            //else
+            //    return "Blank Message?";
 
             //lock (queueOfMessages)
             //    queueOfMessages.Enqueue(String.Format(new ASCIIEncoding().GetString(data)));
         }
 
-        void RecieveMessage()
-        {
-            while (true)
-            {
-                byte[] data = new byte[1024];
-                int bytesRead = 0;
-                int chunk = 0;
+        //void RecieveMessage()
+        //{
+        //    while (true)
+        //    {
+        //        byte[] data = new byte[1024];
+        //        int bytesRead = 0;
+        //        int chunk = 0;
 
-                while (bytesRead < 1024)
-                {
-                    //chunk = ns.Read(data, (int)bytesRead, data.Length - (int)bytesRead);
-                    //if (chunk == 0)
-                    //    break;
-                    //bytesRead += chunk;
+        //        while (bytesRead < 1024)
+        //        {
+        //            //chunk = ns.Read(data, (int)bytesRead, data.Length - (int)bytesRead);
+        //            //if (chunk == 0)
+        //            //    break;
+        //            //bytesRead += chunk;
 
-                    //if (Encoding.ASCII.GetString(data, 0, chunk).Substring(Encoding.ASCII.GetString(data, 0, chunk).Length - 2, 1) == PACKET_TYPE.END_OF_PACKET.ToString())
-                    //    break;
+        //            //if (Encoding.ASCII.GetString(data, 0, chunk).Substring(Encoding.ASCII.GetString(data, 0, chunk).Length - 2, 1) == PACKET_TYPE.END_OF_PACKET.ToString())
+        //            //    break;
 
-                    chunk = ns.Read(data, 0, data.Length);
-                    if (Encoding.ASCII.GetString(data, 0, chunk).Substring(Encoding.ASCII.GetString(data, 0, chunk).Length - 2, 1) == PACKET_TYPE.END_OF_PACKET.ToString())
-                        break;
-                }
+        //            chunk = ns.Read(data, 0, data.Length);
+        //            if (Encoding.ASCII.GetString(data, 0, chunk).Substring(Encoding.ASCII.GetString(data, 0, chunk).Length - 2, 1) == PACKET_TYPE.END_OF_PACKET.ToString())
+        //                break;
+        //        }
 
-                if (chunk == 0)
-                    break;
+        //        if (chunk == 0)
+        //            break;
 
-                //int recv = ns.Read(data, 0, data.Length);
-                //if (recv == 0)
-                //    break;
+        //        //int recv = ns.Read(data, 0, data.Length);
+        //        //if (recv == 0)
+        //        //    break;
 
-                lock(queueOfMessages)
-                    queueOfMessages.Enqueue(String.Format(new ASCIIEncoding().GetString(data)));
-                //queueOfMessages.Enqueue(String.Format(Encoding.ASCII.GetString(data, 0, chunk)));
-            }
-        }
+        //        lock(queueOfMessages)
+        //            queueOfMessages.Enqueue(String.Format(new ASCIIEncoding().GetString(data)));
+        //        //queueOfMessages.Enqueue(String.Format(Encoding.ASCII.GetString(data, 0, chunk)));
+        //    }
+        //}
 
-        public string RecieveFromQueue()
-        {
-            //lock (queueOfMessages)
-                if (queueOfMessages.Count == 0)
-                return "No Count";
+        //public string RecieveFromQueue()
+        //{
+        //    //lock (queueOfMessages)
+        //        if (queueOfMessages.Count == 0)
+        //        return "No Count";
 
-            //lock (queueOfMessages)
-                return queueOfMessages.Dequeue();
-        }
+        //    //lock (queueOfMessages)
+        //        return queueOfMessages.Dequeue();
+        //}
 
         public void ShutdownThread()
         {

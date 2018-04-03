@@ -27,9 +27,9 @@ namespace OmokServer
             Console.WriteLine("New client accepted: {0} active connections",
                               connections);
 
-            string welcome = "Welcome to my test server! " + PACKET_TYPE.END_OF_PACKET.ToString();
+            string welcome = "Welcome to my test server!" + PACKET_TYPE.END_OF_PACKET.ToString();
             data = Encoding.ASCII.GetBytes(welcome);
-            client.NoDelay = true;
+            //client.NoDelay = true;
 
             ns.Write(data, 0, data.Length);
 
