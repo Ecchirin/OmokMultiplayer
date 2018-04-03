@@ -50,7 +50,8 @@ namespace TCPServer
         {
             //ipep = new IPEndPoint(IPAddress.Parse(theIpAddress), portNumber);
             //server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            client.Connect(theIpAddress, portNumber);
+            client = new TcpClient(theIpAddress, portNumber);
+            //client.Connect(theIpAddress, portNumber);
             queueOfMessages = new Queue<string>();
 
             //if (recvThread != null)
