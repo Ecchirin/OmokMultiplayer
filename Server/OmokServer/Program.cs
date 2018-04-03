@@ -43,18 +43,19 @@ namespace OmokServer
                 Console.WriteLine("Message received from {0}:", ((IPEndPoint)client.Client.RemoteEndPoint).Address.ToString());
                 Console.WriteLine(Encoding.ASCII.GetString(data, 0, recv));
                 
-                if (Encoding.ASCII.GetString(data, 0, recv).Substring(0, 1) == PACKET_TYPE.PLACEMENT_PACKET.ToString())
+                if (Encoding.ASCII.GetString(data, 0, recv).Contains(PACKET_TYPE.PLACEMENT_PACKET.ToString()))
                 {
                     //ns.Write(data, 0, recv);
                     data = new byte[1024];
-                    data = Encoding.ASCII.GetBytes("I've got your placement message! Thanks! " + PACKET_TYPE.END_OF_PACKET.ToString());
-                    ns.Write(data, 0, recv);
+                    //data = Encoding.ASCII.GetBytes("I've got your placement message! Thanks! " + PACKET_TYPE.END_OF_PACKET.ToString());
+                    data = Encoding.ASCII.GetBytes("Calvert,Eu Kern,Zi Sheng,Player 1,Player 2,Player 3,Player 4,Player 5,Player6,Player 7,Player 8,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat");
+                    ns.Write(data, 0, data.Length);
                 }
                 else
                 {
                     data = new byte[1024];
                     data = Encoding.ASCII.GetBytes("You sent me a packet that did not contain a placement message! " + PACKET_TYPE.END_OF_PACKET.ToString());
-                    ns.Write(data, 0, recv);
+                    ns.Write(data, 0, data.Length);
                 }
             }
             ns.Close();
