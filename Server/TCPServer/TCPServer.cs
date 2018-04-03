@@ -122,6 +122,7 @@ namespace TCPServer
         public void DisconnectFromServer()
         {
             //server.Shutdown(SocketShutdown.Send);
+            client.GetStream().Close();
             client.Close();
         }
         #endregion Connect or Disconnect
