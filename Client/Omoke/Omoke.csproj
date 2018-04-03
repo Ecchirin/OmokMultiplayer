@@ -88,6 +88,8 @@
     <Compile Include="Assets\Script\Login_service\Save_Name.cs" />
     <Compile Include="Assets\Script\Login_service\ServerConnection.cs" />
     <Compile Include="Assets\Script\Login_service\TextDisplay.cs" />
+    <Compile Include="Assets\Script\Main Menu\ContentViewScaler.cs" />
+    <Compile Include="Assets\Script\Main Menu\UpdateNameList.cs" />
     <Compile Include="Assets\Script\Make_Singleton.cs" />
     <Compile Include="Assets\Script\SceneChange.cs" />
   </ItemGroup>

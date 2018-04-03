@@ -37,28 +37,6 @@ public class Connect_To_Server : MonoBehaviour {
     // This function is for the connection to the server
     public void ServerConnect()
     {
-        //if(inputFieldText.text.Length == 0)
-        //{
-        //    StartCoroutine(DisplayText("Input a Server Address", 3));
-        //    return;
-        //}
-        //StartCoroutine(DisplayText("Connecting to " + inputFieldText.text, 5));
         GameObject.FindGameObjectWithTag(serverServiceTagName).GetComponent<ServerConnection>().ConnecToServer(inputFieldText.text);
-        //if (GameObject.FindGameObjectWithTag(serverServiceTagName).GetComponent<ServerConnection>().GetStatus() == ConnectionStatus.CONNECTED)
-        //{
-        //    StartCoroutine(DisplayText("You are connected to: " + inputFieldText.text, 3));
-        //}
-        //if (GameObject.FindGameObjectWithTag(serverServiceTagName).GetComponent<ServerConnection>().GetStatus() == ConnectionStatus.CONNECTING)
-        //{
-        //    StartCoroutine(DisplayText("Error Cannot Reach Server Try Again", 3));
-        //}
     }
-
-    //public IEnumerator DisplayText(string text, float time) {
-    //    connectionDisplay.GetComponent<Text>().enabled = true;
-    //    connectionDisplay.GetComponent<Text>().text = text;
-    //    yield return new WaitForSeconds(time);
-    //    connectionDisplay.GetComponent<Text>().text = "";
-    //    connectionDisplay.GetComponent<Text>().enabled = false;
-    //}
 }

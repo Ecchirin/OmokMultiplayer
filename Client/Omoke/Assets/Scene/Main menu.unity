@@ -192,6 +192,7 @@ GameObject:
   - component: {fileID: 499642973}
   - component: {fileID: 499642975}
   - component: {fileID: 499642974}
+  - component: {fileID: 499642976}
   m_Layer: 5
   m_Name: Content
   m_TagString: Untagged
@@ -214,8 +215,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 347}
+  m_AnchoredPosition: {x: 0, y: 10.000018}
+  m_SizeDelta: {x: 0, y: 10}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &499642974
 MonoBehaviour:
@@ -253,6 +254,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_HorizontalFit: 0
   m_VerticalFit: 0
+--- !u!114 &499642976
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 499642972}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bae4c9e6c70f8e14e8805ef82f2e916d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cellXSize: 0
+  cellYSize: 10
 --- !u!1 &529795787
 GameObject:
   m_ObjectHideFlags: 0
@@ -469,6 +483,7 @@ GameObject:
   - component: {fileID: 906422129}
   - component: {fileID: 906422128}
   - component: {fileID: 906422127}
+  - component: {fileID: 906422130}
   m_Layer: 5
   m_Name: Refresh Player List
   m_TagString: Untagged
@@ -533,7 +548,18 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 906422128}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 906422130}
+        m_MethodName: refreshList
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
     m_TypeName: UnityEngine.UI.Button+ButtonClickedEvent, UnityEngine.UI, Version=1.0.0.0,
       Culture=neutral, PublicKeyToken=null
 --- !u!114 &906422128
@@ -569,6 +595,21 @@ CanvasRenderer:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 906422125}
+--- !u!114 &906422130
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 906422125}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c9f4b0486aa9774e830308c71b3c788, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  contentView: {fileID: 499642972}
+  exampleTextView: {fileID: 1833971008348962, guid: 20342291c8dbc734a8cceb7396a2dcb7,
+    type: 2}
+  serverServiceTagName: ServerService
 --- !u!1 &944365040
 GameObject:
   m_ObjectHideFlags: 0
@@ -893,7 +934,7 @@ MonoBehaviour:
   m_Content: {fileID: 499642973}
   m_Horizontal: 0
   m_Vertical: 1
-  m_MovementType: 0
+  m_MovementType: 2
   m_Elasticity: 0.1
   m_Inertia: 1
   m_DecelerationRate: 0.135
@@ -1019,8 +1060,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1803552695}
   m_HandleRect: {fileID: 1803552694}
   m_Direction: 2
-  m_Value: 1
-  m_Size: 0.9994236
+  m_Value: 0
+  m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -1330,7 +1371,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 944365042}
   m_HandleRect: {fileID: 944365041}
   m_Direction: 0
-  m_Value: 0
+  m_Value: 1
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:

@@ -18,6 +18,11 @@ public class Save_Name : MonoBehaviour {
     string playerPrefNameTag = "";
     [SerializeField]
     string serverServiceTagName = "ServerService";
+    [SerializeField]
+    string nextScene = "Main menu";
+
+    public TextDisplay showText = null;
+    public SceneChange sceneManager = null;
 
     // Use this for initialization
     void Start () {
@@ -28,11 +33,18 @@ public class Save_Name : MonoBehaviour {
 
     public void SaveName()
     {
+        if(inputFieldText.text.Contains(","))
+        {
+            if(showText != null)
+                showText.StartCoroutine(showText.DisplayText("User cannot input ,", 3));
+            return;
+        }
         PlayerPrefs.SetString(playerPrefNameTag, inputFieldText.text);
         if (GameObject.FindGameObjectWithTag(serverServiceTagName) == null)
             return;
-
         GameObject.FindGameObjectWithTag(serverServiceTagName).GetComponent<ServerConnection>().SendName(playerPrefNameTag);
+        if (sceneManager != null)
+            sceneManager.ChangeScene(nextScene);
     }
 
     //public void SendName()
