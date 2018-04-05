@@ -3,3 +3,4 @@ Server/.vs/
 Server/OmokServer/bin/Debug/
 Server/TCPServer/bin/Debug/
 Server/TCPServer/obj/
+Build/
