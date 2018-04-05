@@ -4,6 +4,8 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using TCPServer;
+using System.Collections.Generic;
+using System.Web;
 
 namespace OmokServer
 {
@@ -11,25 +13,50 @@ namespace OmokServer
     /// The class that manage the connection within each thread
     /// 
     /// </summary>
-    class ConnectionThread
+    /// 
+    
+    public class GameInformation
     {
-        public TcpListener threadListener;
-        private static int connections = 0;
-        int[] mapData;
+        //Map data
+        private int[] mapData;
 
-        //public ConnectionThread(int[] theMapData)
-        //{
-        //    mapData = theMapData;
-        //}
-
-        public void TestMapData()
+        public void GenerateEmptyMap()
         {
             mapData = new int[225];
             for (int i = 0; i < 225; ++i)
             {
-                mapData[i] = new Random().Next(3);
+                mapData[i] = 0;
             }
         }
+
+        public void SetPlacement(int index, int playerIndex)
+        {
+            if (playerIndex == 1 || playerIndex == 2)
+                mapData[index] = playerIndex;
+        }
+
+        public int[] GetMapData()
+        {
+            return mapData;
+        }
+    }
+
+    public class ConnectionThread
+    {
+        /// <summary>
+        /// Each connection should hold the unique Game ID
+        /// It also contains if player is in lobby
+        /// </summary>
+
+        //Stuff for Games
+        public bool inLobby, isSpectator;
+        public GameInformation gameSession;
+
+        //Identification
+        public string clientName;
+
+        public TcpListener threadListener;
+        private static int connections = 0;
 
         public void HandleConnection()
         {
@@ -41,12 +68,18 @@ namespace OmokServer
             Console.WriteLine("New client accepted: {0} active connections",
                               connections);
 
-            string welcome = "Welcome to my test server!" + PACKET_TYPE.END_OF_PACKET.ToString();
+            string welcome = "Welcome to my test server!";
             data = Encoding.ASCII.GetBytes(welcome);
             //client.NoDelay = true;
 
             ns.Write(data, 0, data.Length);
 
+            inLobby = true;
+            isSpectator = false;
+            gameSession = null;
+
+            //TestMapData();
+            //Console.WriteLine(string.Join(", ", mapData));
             while (true)
             {
                 //data = new byte[1024];
@@ -80,16 +113,39 @@ namespace OmokServer
                     {
                         //ns.Write(data, 0, recv);
                         data = new byte[1024];
-                        //data = Encoding.ASCII.GetBytes("I've got your placement message! Thanks! " + PACKET_TYPE.END_OF_PACKET.ToString());
-                        data = Encoding.ASCII.GetBytes("Calvert,Eu Kern,Zi Sheng,Player 1,Player 2,Player 3,Player 4,Player 5,Player6,Player 7,Player 8,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat");
+                        data = Encoding.ASCII.GetBytes("I've got your placement message! Thanks!");
+                        //data = Encoding.ASCII.GetBytes("Calvert,Eu Kern,Zi Sheng,Player 1,Player 2,Player 3,Player 4,Player 5,Player6,Player 7,Player 8,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat");
                         ns.Write(data, 0, data.Length);
                     }
-                    else
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.LOBBY_LIST.ToString()))
                     {
                         data = new byte[1024];
-                        data = Encoding.ASCII.GetBytes("You sent me a packet that did not contain a placement message! " + PACKET_TYPE.END_OF_PACKET.ToString());
+                        //data = Encoding.ASCII.GetBytes("You sent me a packet that did not contain a placement message! " + PACKET_TYPE.END_OF_PACKET.ToString());
+                        data = Encoding.ASCII.GetBytes("Calvert,Eu Kern,Zi Sheng,Player 1,Player 2,Player 3,Player 4,Player 5,Player6,Player 7,Player 8,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat");
+
                         ns.Write(data, 0, data.Length);
                     }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.CREATE_ROOM.ToString()))
+                    {
+                        ThreadedTCPServer.CreateNewRoom(this);
+                        inLobby = false;
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.SET_NAME_PACKET.ToString()))
+                    {
+                        clientName = fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":"));
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.JOIN_ROOM.ToString()))
+                    {
+                        string targetName = fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":"));
+
+                    }
+                    //else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.MAP_DATA.ToString()))
+                    //{
+                    //    data = new byte[1024];
+                    //    data = Encoding.ASCII.GetBytes(string.Join(", ", mapData));
+
+                    //    ns.Write(data, 0, data.Length);
+                    //}
                 }
             }
             ns.Close();
@@ -107,6 +163,12 @@ namespace OmokServer
     /// </summary>
     public class ThreadedTCPServer
     {
+        private TcpListener client;
+        static List<ConnectionThread> listOfConnections = new List<ConnectionThread>();
+        static List<ConnectionThread> listOfHostedRooms = new List<ConnectionThread>();
+        static List<Tuple<ConnectionThread, ConnectionThread>> listOfGamesWaiting = new List<Tuple<ConnectionThread, ConnectionThread>>();
+        static List<GameInformation> listOfOngoingGames = new List<GameInformation>();
+
         public static string GetLocalIPAddress()
         {
             IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
@@ -120,13 +182,36 @@ namespace OmokServer
             throw new Exception("No network adapters with an IPv4 address in the system!");
         }
 
-        private TcpListener client;
+        public static void CreateNewRoom(ConnectionThread theCreator)
+        {
+            listOfHostedRooms.Add(theCreator);
+        }
+
+        public static bool JoinRoom(string targetName, ConnectionThread joiningPlayer)
+        {
+            foreach(ConnectionThread iter in listOfHostedRooms)
+            {
+                if (iter.clientName == targetName && !iter.inLobby)
+                {
+                    Tuple<ConnectionThread, ConnectionThread> newPair = new Tuple<ConnectionThread, ConnectionThread>(iter, joiningPlayer);
+                    listOfGamesWaiting.Add(newPair);
+                    listOfHostedRooms.Remove(iter);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static GameInformation StartNewGame()
+        {
+            GameInformation newGame = new GameInformation();
+            newGame.GenerateEmptyMap();
+            listOfOngoingGames.Add(newGame);
+            return newGame;
+        }
 
         public ThreadedTCPServer()
         {
-            //IPAddress ipAddress = Dns.Resolve("192.168.0.22").AddressList[0];
-            //IPAddress ipAddress = Dns.GetHostAddresses(Dns.GetHostName())[0];
-            //IPAddress iPAddress("192.168.0.22");
             IPAddress ipAddress = IPAddress.Parse(GetLocalIPAddress());
             Console.WriteLine(ipAddress.ToString());
             try
@@ -151,6 +236,8 @@ namespace OmokServer
 
                 ConnectionThread newconnection = new ConnectionThread();
                 newconnection.threadListener = this.client;
+                listOfConnections.Add(newconnection);
+
                 Thread newthread = new Thread(new
                           ThreadStart(newconnection.HandleConnection));
                 newthread.Start();

@@ -15,28 +15,38 @@ namespace TCPServer
 {
     public enum PACKET_TYPE
     {
+        //Client Sided Packet Commands
+        //Shared Packet Commands
+        //Server Sided Commands
         SET_NAME_PACKET = 1,
         PLACEMENT_PACKET,
-        PLAYER_LIST,
+        LEAVE_ROOM_PACKET,
+        GET_MY_NAME,
+        LOBBY_LIST,
+        ROOM_LIST,
+        CREATE_ROOM,
+        START_GAME,
+        READY_PACKET,
+        FULL_ROOMS_LIST,
+        JOIN_ROOM,
         MAP_DATA,
-        END_OF_PACKET,
         TOTAL_TYPES_OF_PACKETS,
     }
 
-    public struct GameInformation
-    {
-        uint[] MapData;
+    //public struct GameInformation
+    //{
+    //    uint[] MapData;
 
-        public GameInformation(int b)
-        {
-            MapData = new uint[255];
+    //    public GameInformation(int b)
+    //    {
+    //        MapData = new uint[255];
 
-            for (int i = 0; i < 255; ++i)
-                MapData[i] = 0;
+    //        for (int i = 0; i < 255; ++i)
+    //            MapData[i] = 0;
 
-            //MapData = theMapData;
-        }
-    }
+    //        //MapData = theMapData;
+    //    }
+    //}
 
     public class ConnectionClass
     {
