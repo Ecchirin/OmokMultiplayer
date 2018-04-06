@@ -37,17 +37,19 @@ public class ServerConnection : MonoBehaviour {
     void Update()
     {
         //Check for server
-        if (server == null || !server.CheckConnection())
+        if (server == null)
             return;
 
         //All these should change later
-        if (Input.GetKey(KeyCode.H) && server != null)
+        if (Input.GetKey(KeyCode.H))
         {
             //server.SendPosition(50);
             GetPlayerList();
             GetMapData();
             //Debug.Log(server.RecieveFromQueue());
         }
+
+
 
         //Dequeue extra messages that are sent
         string tempstring = server.RecieveFromQueue();
@@ -107,12 +109,28 @@ public class ServerConnection : MonoBehaviour {
     //Get the list of players that is currently online
     public string GetPlayerList()
     {
-        server.SendMessage(PACKET_TYPE.PLAYER_LIST, "Give me player list");
-        string tempstring = server.RecieveFromQueue();
+        server.SendMessage(PACKET_TYPE.LOBBY_LIST, "Give me player list");
+        //WaitForSeconds(1);
+        string tempstring /*= server.RecieveFromQueue()*/;
+
+        DateTime b = DateTime.Now.AddSeconds(3);
+        do
+        {
+            DateTime a = DateTime.Now;
+            tempstring = server.RecieveFromQueue();
+            if (a > b)
+                break;
+        }
+        while (!tempstring.Contains(PACKET_TYPE.LOBBY_LIST.ToString()));
+
+        tempstring = Unpack(tempstring);
 
         if (tempstring != "No Message")
+        {
             Debug.Log(tempstring + "(In GetPlayerList)");
-        return tempstring;
+            return tempstring;
+        }
+        return "Unable to fetch list";
     }
 
     //Get the data of the map
@@ -126,6 +144,42 @@ public class ServerConnection : MonoBehaviour {
         return tempstring;
     }
 
+    public void CreateRoom()
+    {
+        server.SendMessage(PACKET_TYPE.CREATE_ROOM, "");
+    }
+
+    public string GetRoomList()
+    {
+        server.SendMessage(PACKET_TYPE.ROOM_LIST, "Give me Room list");
+        string tempstring;
+        DateTime b = DateTime.Now.AddSeconds(3);
+        do
+        {
+            DateTime a = DateTime.Now;
+            tempstring = server.RecieveFromQueue();
+            if (a > b)
+                break;
+        }
+        while (!tempstring.Contains(PACKET_TYPE.ROOM_LIST.ToString()));
+
+        tempstring = Unpack(tempstring);
+
+        if (tempstring != "No Message")
+        {
+            Debug.Log(tempstring + "(In GetRoomList)");
+            return tempstring;
+        }
+        return "No Rooms Available.";
+    }
+
+    public void JoinRoom(string roomName)
+    {
+        if (roomName == "")
+            return;
+        server.SendMessage(PACKET_TYPE.JOIN_ROOM, roomName);
+    }
+
     //When gameobject detect application has been closed this will close the connection to the server (prevent server crash)
     private void OnApplicationQuit()
     {
@@ -137,5 +191,11 @@ public class ServerConnection : MonoBehaviour {
         cts_connection_status = ConnectionStatus.NOT_CONNECTING;
         server.ShutdownThread();
         server.DisconnectFromServer();
+    }
+
+    string Unpack(string message)
+    {
+        message = message.Substring(message.IndexOf(":")+1);
+        return message;
     }
 }

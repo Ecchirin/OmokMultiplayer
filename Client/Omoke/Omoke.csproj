@@ -91,6 +91,9 @@
     <Compile Include="Assets\Script\Main Menu\ContentViewScaler.cs" />
     <Compile Include="Assets\Script\Main Menu\UpdateNameList.cs" />
     <Compile Include="Assets\Script\Make_Singleton.cs" />
+    <Compile Include="Assets\Script\Room Menu\HostRoomButton.cs" />
+    <Compile Include="Assets\Script\Room Menu\JoinRoomButton.cs" />
+    <Compile Include="Assets\Script\Room Menu\RefreshRoomList.cs" />
     <Compile Include="Assets\Script\SceneChange.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
