@@ -121,7 +121,7 @@ namespace OmokServer
                     {
                         data = new byte[1024];
                         //data = Encoding.ASCII.GetBytes("You sent me a packet that did not contain a placement message! " + PACKET_TYPE.END_OF_PACKET.ToString());
-                        data = Encoding.ASCII.GetBytes("Calvert,Eu Kern,Zi Sheng,Player 1,Player 2,Player 3,Player 4,Player 5,Player6,Player 7,Player 8,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat");
+                        data = Encoding.ASCII.GetBytes(PACKET_TYPE.LOBBY_LIST.ToString() + ":" + "Calvert,Eu Kern,Zi Sheng,Player 1,Player 2,Player 3,Player 4,Player 5,Player6,Player 7,Player 8,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat");
 
                         ns.Write(data, 0, data.Length);
                     }
@@ -133,11 +133,24 @@ namespace OmokServer
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.SET_NAME_PACKET.ToString()))
                     {
                         clientName = fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":"));
+
+                        data = new byte[1024];
+                        data = Encoding.ASCII.GetBytes("Your name is " + clientName.ToString());
+                        ns.Write(data, 0, data.Length);
                     }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.JOIN_ROOM.ToString()))
                     {
                         string targetName = fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":"));
-
+                        if (ThreadedTCPServer.JoinRoom(targetName, this))
+                            Console.WriteLine("Success in joining room");
+                        else
+                            Console.WriteLine("No rooms found");
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.ROOM_LIST.ToString()))
+                    {
+                        data = new byte[1024];
+                        data = Encoding.ASCII.GetBytes(PACKET_TYPE.ROOM_LIST.ToString() + ":" + ThreadedTCPServer.GetHostedRoomList());
+                        ns.Write(data, 0, data.Length);
                     }
                     //else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.MAP_DATA.ToString()))
                     //{
@@ -181,6 +194,28 @@ namespace OmokServer
             }
             throw new Exception("No network adapters with an IPv4 address in the system!");
         }
+
+        public static string GetHostedRoomList()
+        {
+            List<string> getNames = new List<string>();
+            foreach (ConnectionThread iter in listOfHostedRooms)
+            {
+                getNames.Add(iter.clientName);
+            }
+
+            return string.Join(", ", getNames.ToArray());
+        }
+
+        //public static string GetListOfOngoingGames()
+        //{
+        //    List<string> getNames = new List<string>();
+        //    foreach (ConnectionThread iter in listOfOngoingGames)
+        //    {
+        //        getNames.Add(iter.clientName);
+        //    }
+
+        //    return string.Join(", ", getNames.ToArray());
+        //}
 
         public static void CreateNewRoom(ConnectionThread theCreator)
         {
