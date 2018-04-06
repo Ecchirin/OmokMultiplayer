@@ -37,7 +37,7 @@ public class RefreshRoomList : MonoBehaviour {
             return;
         }
         DestroyAllChild();
-        string players = serverService.GetPlayerList();
+        string players = serverService.GetRoomList();
         string[] strArray = players.Split(',');
         Debug.Log(strArray.Length);
         Debug.Log(players);
