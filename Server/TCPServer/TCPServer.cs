@@ -149,29 +149,7 @@ namespace TCPServer
         /// <returns>True on connected. False on disconnected.</returns>
         public bool IsConnected()
         {
-            if (client.Connected)
-            {
-                if ((client.Client.Poll(0, SelectMode.SelectWrite)) && (!client.Client.Poll(0, SelectMode.SelectError)))
-                {
-                    byte[] buffer = new byte[1];
-                    if (client.Client.Receive(buffer, SocketFlags.Peek) == 0)
-                    {
-                        return false;
-                    }
-                    else
-                    {
-                        return true;
-                    }
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                return false;
-            }
+            return client.Connected;
         }
 
         public void DisconnectFromServer()

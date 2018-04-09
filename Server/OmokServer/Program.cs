@@ -52,7 +52,7 @@ namespace OmokServer
             isSpectator = false;
             gameSession = null;
 
-            ThreadedTCPServer.AddNewConnectedClient(this);
+            //ThreadedTCPServer.AddNewConnectedClient(this);
 
             //TestMapData();
             //Console.WriteLine(string.Join(", ", mapData));
@@ -95,13 +95,12 @@ namespace OmokServer
                     {
                         data = new byte[1024];
                         data = Encoding.ASCII.GetBytes(PACKET_TYPE.LOBBY_LIST.ToString() + ":" + ThreadedTCPServer.GetListOfConnectedUsers());
-
+                        Console.WriteLine(ThreadedTCPServer.GetListOfConnectedUsers());
                         ns.Write(data, 0, data.Length);
                     }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.CREATE_ROOM.ToString()))
                     {
                         ThreadedTCPServer.CreateNewRoom(this);
-                        inLobby = false;
                     }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.SET_NAME_PACKET.ToString()))
                     {
@@ -192,22 +191,34 @@ namespace OmokServer
         public static string GetHostedRoomList()
         {
             List<string> getNames = new List<string>();
+            bool hasGames = false;
+
             foreach (ConnectionThread iter in listOfHostedRooms)
             {
+                if (iter.clientName == null || iter.clientName == "")
+                    continue;
+
                 getNames.Add(iter.clientName);
+                hasGames = true;
             }
 
-            return string.Join(", ", getNames.ToArray());
+            if (hasGames)
+                return string.Join(",", getNames.ToArray());
+            else
+                return "No Games Found";
         }
+
         public static string GetListOfConnectedUsers()
         {
             List<string> getNames = new List<string>();
             foreach (ConnectionThread iter in listOfConnections)
             {
+                if (iter.clientName == null || iter.clientName == "")
+                    continue;
+
                 getNames.Add(iter.clientName);
             }
-
-            return string.Join(", ", getNames.ToArray());
+            return string.Join(",", getNames.ToArray());
         }
 
         //public static string GetListOfOngoingGames()
@@ -223,7 +234,10 @@ namespace OmokServer
 
         public static void CreateNewRoom(ConnectionThread theCreator)
         {
-            listOfHostedRooms.Add(theCreator);
+            if (theCreator.inLobby)
+                listOfHostedRooms.Add(theCreator);
+
+            theCreator.inLobby = false;
         }
 
         public static bool JoinRoom(string targetName, ConnectionThread joiningPlayer)
@@ -277,7 +291,8 @@ namespace OmokServer
 
                 ConnectionThread newconnection = new ConnectionThread();
                 newconnection.threadListener = this.client;
-                listOfConnections.Add(newconnection);
+                //listOfConnections.Add(newconnection);
+                AddNewConnectedClient(newconnection);
 
                 Thread newthread = new Thread(new
                           ThreadStart(newconnection.HandleConnection));
