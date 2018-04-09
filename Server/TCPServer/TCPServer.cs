@@ -8,9 +8,6 @@ using System.Net.Sockets;
 using System.Threading;
 using System.IO;
 
-//https://stackoverflow.com/questions/12652791/tcp-client-server-client-doesnt-always-read?rq=1
-//Test build tmr from here.
-
 namespace TCPServer
 {
     public enum PACKET_TYPE
@@ -73,7 +70,17 @@ namespace TCPServer
         //Constructor to setup the struct
         public ConnectionClass(string theIpAddress, Int32 thePort)
         {
-            client = new TcpClient(theIpAddress, thePort);
+            //client = new TcpClient(theIpAddress, thePort);
+            client = new TcpClient();
+            try
+            {
+                client.Connect(theIpAddress, thePort);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Can't connect. Reason can be :\r\n1.Server is down.\r\n2.You lost internet connection");
+            }
+
             queueOfMessages = new Queue<string>();
             ns = client.GetStream();
 
