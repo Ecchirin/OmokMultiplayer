@@ -14,32 +14,6 @@ namespace OmokServer
     /// 
     /// </summary>
     /// 
-    
-    public class GameInformation
-    {
-        //Map data
-        private int[] mapData;
-
-        public void GenerateEmptyMap()
-        {
-            mapData = new int[225];
-            for (int i = 0; i < 225; ++i)
-            {
-                mapData[i] = 0;
-            }
-        }
-
-        public void SetPlacement(int index, int playerIndex)
-        {
-            if (playerIndex == 1 || playerIndex == 2)
-                mapData[index] = playerIndex;
-        }
-
-        public int[] GetMapData()
-        {
-            return mapData;
-        }
-    }
 
     public class ConnectionThread
     {
@@ -78,6 +52,8 @@ namespace OmokServer
             isSpectator = false;
             gameSession = null;
 
+            ThreadedTCPServer.AddNewConnectedClient(this);
+
             //TestMapData();
             //Console.WriteLine(string.Join(", ", mapData));
             while (true)
@@ -111,17 +87,14 @@ namespace OmokServer
 
                     if (fullPacketMessage.ToString().Contains(PACKET_TYPE.PLACEMENT_PACKET.ToString()))
                     {
-                        //ns.Write(data, 0, recv);
                         data = new byte[1024];
                         data = Encoding.ASCII.GetBytes("I've got your placement message! Thanks!");
-                        //data = Encoding.ASCII.GetBytes("Calvert,Eu Kern,Zi Sheng,Player 1,Player 2,Player 3,Player 4,Player 5,Player6,Player 7,Player 8,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat");
                         ns.Write(data, 0, data.Length);
                     }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.LOBBY_LIST.ToString()))
                     {
                         data = new byte[1024];
-                        //data = Encoding.ASCII.GetBytes("You sent me a packet that did not contain a placement message! " + PACKET_TYPE.END_OF_PACKET.ToString());
-                        data = Encoding.ASCII.GetBytes(PACKET_TYPE.LOBBY_LIST.ToString() + ":" + "Calvert,Eu Kern,Zi Sheng,Player 1,Player 2,Player 3,Player 4,Player 5,Player6,Player 7,Player 8,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat,repeat");
+                        data = Encoding.ASCII.GetBytes(PACKET_TYPE.LOBBY_LIST.ToString() + ":" + ThreadedTCPServer.GetListOfConnectedUsers());
 
                         ns.Write(data, 0, data.Length);
                     }
@@ -132,7 +105,7 @@ namespace OmokServer
                     }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.SET_NAME_PACKET.ToString()))
                     {
-                        clientName = fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":"));
+                        clientName = fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":") + 1) + ThreadedTCPServer.GiveUniqueID();
 
                         data = new byte[1024];
                         data = Encoding.ASCII.GetBytes("Your name is " + clientName.ToString());
@@ -140,7 +113,7 @@ namespace OmokServer
                     }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.JOIN_ROOM.ToString()))
                     {
-                        string targetName = fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":"));
+                        string targetName = fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":") + 1);
                         if (ThreadedTCPServer.JoinRoom(targetName, this))
                             Console.WriteLine("Success in joining room");
                         else
@@ -150,6 +123,12 @@ namespace OmokServer
                     {
                         data = new byte[1024];
                         data = Encoding.ASCII.GetBytes(PACKET_TYPE.ROOM_LIST.ToString() + ":" + ThreadedTCPServer.GetHostedRoomList());
+                        ns.Write(data, 0, data.Length);
+                    }
+                    else
+                    {
+                        data = new byte[1024];
+                        data = Encoding.ASCII.GetBytes("You sent unknown packet?");
                         ns.Write(data, 0, data.Length);
                     }
                     //else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.MAP_DATA.ToString()))
@@ -169,6 +148,11 @@ namespace OmokServer
         }
     }
 
+    public struct OngoingGame
+    {
+        public ConnectionThread theHost, theOpponent;
+    }
+
     /// <summary>
     /// The class will assign new connections to new threads
     /// 
@@ -179,8 +163,9 @@ namespace OmokServer
         private TcpListener client;
         static List<ConnectionThread> listOfConnections = new List<ConnectionThread>();
         static List<ConnectionThread> listOfHostedRooms = new List<ConnectionThread>();
-        static List<Tuple<ConnectionThread, ConnectionThread>> listOfGamesWaiting = new List<Tuple<ConnectionThread, ConnectionThread>>();
+        static List<OngoingGame> listOfGamesWaiting = new List<OngoingGame>();
         static List<GameInformation> listOfOngoingGames = new List<GameInformation>();
+        static int uniqueID = 0;
 
         public static string GetLocalIPAddress()
         {
@@ -195,10 +180,29 @@ namespace OmokServer
             throw new Exception("No network adapters with an IPv4 address in the system!");
         }
 
+        public static string GiveUniqueID()
+        {
+            return "#0" + (uniqueID++).ToString();
+        }
+
+        public static void AddNewConnectedClient(ConnectionThread newConnection)
+        {
+            listOfConnections.Add(newConnection);
+        }
         public static string GetHostedRoomList()
         {
             List<string> getNames = new List<string>();
             foreach (ConnectionThread iter in listOfHostedRooms)
+            {
+                getNames.Add(iter.clientName);
+            }
+
+            return string.Join(", ", getNames.ToArray());
+        }
+        public static string GetListOfConnectedUsers()
+        {
+            List<string> getNames = new List<string>();
+            foreach (ConnectionThread iter in listOfConnections)
             {
                 getNames.Add(iter.clientName);
             }
@@ -228,8 +232,10 @@ namespace OmokServer
             {
                 if (iter.clientName == targetName && !iter.inLobby)
                 {
-                    Tuple<ConnectionThread, ConnectionThread> newPair = new Tuple<ConnectionThread, ConnectionThread>(iter, joiningPlayer);
-                    listOfGamesWaiting.Add(newPair);
+                    OngoingGame newGame = new OngoingGame();
+                    newGame.theHost = iter;
+                    newGame.theOpponent = joiningPlayer;
+                    listOfGamesWaiting.Add(newGame);
                     listOfHostedRooms.Remove(iter);
                     return true;
                 }

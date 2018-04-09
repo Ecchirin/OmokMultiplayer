@@ -33,20 +33,32 @@ namespace TCPServer
         TOTAL_TYPES_OF_PACKETS,
     }
 
-    //public struct GameInformation
-    //{
-    //    uint[] MapData;
 
-    //    public GameInformation(int b)
-    //    {
-    //        MapData = new uint[255];
+    public class GameInformation
+    {
+        //Map data
+        private int[] mapData;
 
-    //        for (int i = 0; i < 255; ++i)
-    //            MapData[i] = 0;
+        public void GenerateEmptyMap()
+        {
+            mapData = new int[225];
+            for (int i = 0; i < 225; ++i)
+            {
+                mapData[i] = 0;
+            }
+        }
 
-    //        //MapData = theMapData;
-    //    }
-    //}
+        public void SetPlacement(int index, int playerIndex)
+        {
+            if (playerIndex == 1 || playerIndex == 2)
+                mapData[index] = playerIndex;
+        }
+
+        public int[] GetMapData()
+        {
+            return mapData;
+        }
+    }
 
     public class ConnectionClass
     {
@@ -117,13 +129,44 @@ namespace TCPServer
         //    ns = client.GetStream();
         //    return true;
         //}
-        public bool CheckConnection()
+        //public bool CheckConnection()
+        //{
+        //    if (IPGlobalProperties.GetIPGlobalProperties()
+        //        .GetActiveTcpConnections()
+        //        .SingleOrDefault(x => x.LocalEndPoint.Equals(client.Client.LocalEndPoint)) != null)
+        //    {
+        //        return true;
+        //    }
+        //    else
+        //    {
+        //        return false;
+        //    }
+        //}
+
+        /// <summary>
+        /// Checks the connection state
+        /// </summary>
+        /// <returns>True on connected. False on disconnected.</returns>
+        public bool IsConnected()
         {
-            if (IPGlobalProperties.GetIPGlobalProperties()
-                .GetActiveTcpConnections()
-                .SingleOrDefault(x => x.LocalEndPoint.Equals(client.Client.LocalEndPoint)) != null)
+            if (client.Connected)
             {
-                return true;
+                if ((client.Client.Poll(0, SelectMode.SelectWrite)) && (!client.Client.Poll(0, SelectMode.SelectError)))
+                {
+                    byte[] buffer = new byte[1];
+                    if (client.Client.Receive(buffer, SocketFlags.Peek) == 0)
+                    {
+                        return false;
+                    }
+                    else
+                    {
+                        return true;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
             }
             else
             {
