@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 /// <summary>
 /// This script is use to save a name
@@ -11,9 +12,7 @@ public class Save_Name : MonoBehaviour {
 
     //Take in the display text and the input field
     [SerializeField]
-    Text inputFieldText = null;
-    [SerializeField]
-    Text connectionDisplay = null;
+    TMP_InputField nameInputField = null;
     [SerializeField]
     string playerPrefNameTag = "";
     [SerializeField]
@@ -27,31 +26,23 @@ public class Save_Name : MonoBehaviour {
     // Use this for initialization
     void Start () {
         //nameFieldGroup = this.transform.parent.gameObject;
-        if (inputFieldText != null)
-            inputFieldText.transform.parent.GetComponent<InputField>().text = PlayerPrefs.GetString(playerPrefNameTag, "Default001");
+        if (nameInputField != null)
+            nameInputField.text = PlayerPrefs.GetString(playerPrefNameTag, "Default001");
     }
 
     public void SaveName()
     {
-        if(inputFieldText.text.Contains(","))
+        if(nameInputField.text.Contains(","))
         {
             if(showText != null)
                 showText.StartCoroutine(showText.DisplayText("User cannot input ,", 3));
             return;
         }
-        PlayerPrefs.SetString(playerPrefNameTag, inputFieldText.text);
+        PlayerPrefs.SetString(playerPrefNameTag, nameInputField.text);
         if (GameObject.FindGameObjectWithTag(serverServiceTagName) == null)
             return;
         GameObject.FindGameObjectWithTag(serverServiceTagName).GetComponent<ServerConnection>().SendName(playerPrefNameTag);
         if (sceneManager != null)
             sceneManager.ChangeScene(nextScene);
     }
-
-    //public void SendName()
-    //{
-    //    if (GameObject.FindGameObjectWithTag(serverServiceTagName) == null)
-    //        return;
-
-    //    GameObject.FindGameObjectWithTag(serverServiceTagName).GetComponent<ServerConnection>().SendName(playerPrefNameTag);
-    //}
 }

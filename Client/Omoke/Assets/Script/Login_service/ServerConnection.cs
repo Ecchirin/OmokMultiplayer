@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
-using System.Net;
+using TMPro;
 using TCPServer;
 
 /// <summary>
@@ -21,7 +21,9 @@ public class ServerConnection : MonoBehaviour {
 
     public TextDisplay showText = null;
 
-    public String serverIP_Display;
+    [SerializeField]
+    string lostConnectScene = "Server Disconnect";
+    public string name = "";
 
     ConnectionClass server = null;
 
@@ -40,17 +42,6 @@ public class ServerConnection : MonoBehaviour {
         if (server == null)
             return;
 
-        //All these should change later
-        if (Input.GetKey(KeyCode.H))
-        {
-            //server.SendPosition(50);
-            GetPlayerList();
-            GetMapData();
-            //Debug.Log(server.RecieveFromQueue());
-        }
-
-
-
         //Dequeue extra messages that are sent
         string tempstring = server.RecieveFromQueue();
 
@@ -63,13 +54,22 @@ public class ServerConnection : MonoBehaviour {
     {
         if (server == null)
             return;
-        if (!server.CheckConnection())
+        if (!server.IsConnected() && cts_connection_status != ConnectionStatus.NOT_CONNECTING)
+        {
             cts_connection_status = ConnectionStatus.NOT_CONNECTING;
+            this.gameObject.GetComponent<SceneChange>().ChangeScene(lostConnectScene);
+        }
     }
 
     //Connect to server
-    public void ConnecToServer(String serverIP)
+    public void ConnecToServer(String serverIP, int portNumber)
     {
+        if(portNumber < 0)
+        {
+            if (showText)
+                showText.StartCoroutine(showText.DisplayText("Invalid port numberl", 3));
+            return;
+        }
         //Display some text for user feedback
         cts_connection_status = ConnectionStatus.CONNECTING;
         if (showText)
@@ -77,7 +77,7 @@ public class ServerConnection : MonoBehaviour {
         //Try to connect to server if failed then return from function and change server to null again
         try
         {
-            server = new ConnectionClass(serverIP, 7777);
+            server = new ConnectionClass(serverIP, portNumber);
         }
         catch(Exception e)
         {
@@ -90,6 +90,8 @@ public class ServerConnection : MonoBehaviour {
         }
         //Display some text for user feedback
         cts_connection_status = ConnectionStatus.CONNECTED;
+        PlayerPrefs.SetString("ServerIP", serverIP);
+        PlayerPrefs.SetInt("ServerPort", portNumber);
         if (showText)
             showText.StartCoroutine(showText.DisplayText("Connection established", 3));
     }
@@ -97,7 +99,23 @@ public class ServerConnection : MonoBehaviour {
     //Send set name to the server for recording
     public void SendName(string PlayerPrefName)
     {
-        server.SendMessage(PACKET_TYPE.SET_NAME_PACKET, PlayerPrefs.GetString(PlayerPrefName, "Default001"));
+        server.SendMessage(PACKET_TYPE.ASSIGN_NAME_PACKET, PlayerPrefs.GetString(PlayerPrefName, "Default001"));
+        DateTime b = DateTime.Now.AddSeconds(3);
+        do
+        {
+            DateTime a = DateTime.Now;
+            name = server.RecieveFromQueue();
+            if (a > b)
+                break;
+        }
+        while (!name.Contains(PACKET_TYPE.ASSIGN_NAME_PACKET.ToString()));
+
+        name = Unpack(name);
+
+        if (name != "No Message")
+        {
+            Debug.Log(name + "(In SendName)");
+        }
     }
 
     //Send current status to the other gameobject that needs server
@@ -109,7 +127,7 @@ public class ServerConnection : MonoBehaviour {
     //Get the list of players that is currently online
     public string GetPlayerList()
     {
-        server.SendMessage(PACKET_TYPE.LOBBY_LIST, "Give me player list");
+        server.SendMessage(PACKET_TYPE.GET_ALL_CONNECTED_USERS, "Give me player list");
         //WaitForSeconds(1);
         string tempstring /*= server.RecieveFromQueue()*/;
 
@@ -121,7 +139,7 @@ public class ServerConnection : MonoBehaviour {
             if (a > b)
                 break;
         }
-        while (!tempstring.Contains(PACKET_TYPE.LOBBY_LIST.ToString()));
+        while (!tempstring.Contains(PACKET_TYPE.GET_ALL_CONNECTED_USERS.ToString()));
 
         tempstring = Unpack(tempstring);
 
@@ -136,7 +154,7 @@ public class ServerConnection : MonoBehaviour {
     //Get the data of the map
     public string GetMapData()
     {
-        server.SendMessage(PACKET_TYPE.MAP_DATA, "Give me map data");
+        server.SendMessage(PACKET_TYPE.GET_MAP_DATA, "Give me map data");
         string tempstring = server.RecieveFromQueue();
 
         if (tempstring != "No Message")
@@ -146,12 +164,12 @@ public class ServerConnection : MonoBehaviour {
 
     public void CreateRoom()
     {
-        server.SendMessage(PACKET_TYPE.CREATE_ROOM, "");
+        server.SendMessage(PACKET_TYPE.CREATE_NEW_ROOM, "I'm Creating a room");
     }
 
     public string GetRoomList()
     {
-        server.SendMessage(PACKET_TYPE.ROOM_LIST, "Give me Room list");
+        server.SendMessage(PACKET_TYPE.GET_ROOMS_TO_JOIN, "Give me Room list");
         string tempstring;
         DateTime b = DateTime.Now.AddSeconds(3);
         do
@@ -161,7 +179,7 @@ public class ServerConnection : MonoBehaviour {
             if (a > b)
                 break;
         }
-        while (!tempstring.Contains(PACKET_TYPE.ROOM_LIST.ToString()));
+        while (!tempstring.Contains(PACKET_TYPE.GET_ROOMS_TO_JOIN.ToString()));
 
         tempstring = Unpack(tempstring);
 
@@ -193,9 +211,8 @@ public class ServerConnection : MonoBehaviour {
         server.DisconnectFromServer();
     }
 
-    string Unpack(string message)
-    {
-        message = message.Substring(message.IndexOf(":")+1);
-        return message;
+    private string Unpack(string message)
+    { 
+        return message.Substring(message.IndexOf(":") + 1);
     }
 }
