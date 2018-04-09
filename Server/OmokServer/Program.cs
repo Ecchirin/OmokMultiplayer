@@ -85,24 +85,24 @@ namespace OmokServer
                     // Console.WriteLine(Encoding.ASCII.GetString(data, 0, recv));
                     Console.WriteLine(fullPacketMessage.ToString());
 
-                    if (fullPacketMessage.ToString().Contains(PACKET_TYPE.PLACEMENT_PACKET.ToString()))
+                    if (fullPacketMessage.ToString().Contains(PACKET_TYPE.SET_MY_MOVE.ToString()))
                     {
                         data = new byte[1024];
                         data = Encoding.ASCII.GetBytes("I've got your placement message! Thanks!");
                         ns.Write(data, 0, data.Length);
                     }
-                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.LOBBY_LIST.ToString()))
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.GET_ALL_CONNECTED_USERS.ToString()))
                     {
                         data = new byte[1024];
-                        data = Encoding.ASCII.GetBytes(PACKET_TYPE.LOBBY_LIST.ToString() + ":" + ThreadedTCPServer.GetListOfConnectedUsers());
+                        data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_ALL_CONNECTED_USERS.ToString() + ":" + ThreadedTCPServer.GetListOfConnectedUsers());
                         Console.WriteLine(ThreadedTCPServer.GetListOfConnectedUsers());
                         ns.Write(data, 0, data.Length);
                     }
-                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.CREATE_ROOM.ToString()))
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.CREATE_NEW_ROOM.ToString()))
                     {
                         ThreadedTCPServer.CreateNewRoom(this);
                     }
-                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.SET_NAME_PACKET.ToString()))
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.ASSIGN_NAME_PACKET.ToString()))
                     {
                         clientName = fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":") + 1) + ThreadedTCPServer.GiveUniqueID();
 
@@ -118,10 +118,10 @@ namespace OmokServer
                         else
                             Console.WriteLine("No rooms found");
                     }
-                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.ROOM_LIST.ToString()))
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.GET_ROOMS_TO_JOIN.ToString()))
                     {
                         data = new byte[1024];
-                        data = Encoding.ASCII.GetBytes(PACKET_TYPE.ROOM_LIST.ToString() + ":" + ThreadedTCPServer.GetHostedRoomList());
+                        data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_ROOMS_TO_JOIN.ToString() + ":" + ThreadedTCPServer.GetHostedRoomList());
                         ns.Write(data, 0, data.Length);
                     }
                     else

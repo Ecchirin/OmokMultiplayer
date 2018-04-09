@@ -12,21 +12,38 @@ namespace TCPServer
 {
     public enum PACKET_TYPE
     {
-        //Client Sided Packet Commands
-        //Shared Packet Commands
-        //Server Sided Commands
-        SET_NAME_PACKET = 1,
-        PLACEMENT_PACKET,
-        LEAVE_ROOM_PACKET,
-        GET_MY_NAME,
-        LOBBY_LIST,
-        ROOM_LIST,
-        CREATE_ROOM,
-        START_GAME,
-        READY_PACKET,
-        FULL_ROOMS_LIST,
+        ASSIGN_NAME_PACKET = 0,
+
+        CREATE_NEW_ROOM,
+        ROOM_CREATED_SUCCESS,
+        ROOM_CREATED_FAILURE,
+
         JOIN_ROOM,
-        MAP_DATA,
+        JOIN_ROOM_SUCCESS,
+        JOIN_ROOM_FAILURE,
+
+        SET_PLAYER_READY,
+        PLAYER_IS_READY,
+
+        START_GAME,
+        START_GAME_SUCCESS,
+        START_GAME_FAILURE,
+
+        LEAVE_ROOM,
+
+        GET_ALL_CONNECTED_USERS,
+        GET_ROOMS_TO_JOIN,
+        GET_ROOMS_TO_SPECTATE,
+        GET_CURRENT_USERS_IN_LOBBY,
+
+        SET_MY_MOVE,
+        MOVE_REJECTED,
+        MOVE_ACCEPTED,
+        GET_OPPONENT_MOVE,
+        GET_MAP_DATA,
+
+        OPPONENT_DISCONNECTED,
+
         TOTAL_TYPES_OF_PACKETS,
     }
 
@@ -99,14 +116,12 @@ namespace TCPServer
         #region Change IP or Port
         public void ChangeIPAddress(string theIpAddress)
         {
-            //ipep.Address = IPAddress.Parse(theIpAddress);
             client.Connect(theIpAddress, portNumber);
             ns = client.GetStream();
         }
 
         public void ChangePort(Int32 thePort)
         {
-            //ipep.Port = portNumber;
             client.Connect(ipAddress, thePort);
             ns = client.GetStream();
         }
@@ -120,35 +135,6 @@ namespace TCPServer
 
         //This region handles the connection or disconnection to/from server
         #region CheckConnection or Disconnect
-        //public bool ConnectToServer()
-        //{
-        //    try
-        //    {
-        //        //server.Connect(ipep);
-        //        //client.Connect()
-        //    }
-        //    catch (SocketException e)
-        //    {
-        //        return false;
-        //    }
-
-        //    //ns = new NetworkStream(server);
-        //    ns = client.GetStream();
-        //    return true;
-        //}
-        //public bool CheckConnection()
-        //{
-        //    if (IPGlobalProperties.GetIPGlobalProperties()
-        //        .GetActiveTcpConnections()
-        //        .SingleOrDefault(x => x.LocalEndPoint.Equals(client.Client.LocalEndPoint)) != null)
-        //    {
-        //        return true;
-        //    }
-        //    else
-        //    {
-        //        return false;
-        //    }
-        //}
 
         /// <summary>
         /// Checks the connection state
@@ -161,8 +147,6 @@ namespace TCPServer
 
         public void DisconnectFromServer()
         {
-            //server.Shutdown(SocketShutdown.Send);
-            //ns.Write(SocketShutdown.Send);
             client.Client.Shutdown(SocketShutdown.Both);
             client.GetStream().Close();
             client.Close();
@@ -173,7 +157,6 @@ namespace TCPServer
         {
             byte[] data = new byte[1024];
             data = Encoding.ASCII.GetBytes(packetType.ToString() + ":" + message);
-            //server.SendTo(data, data.Length, SocketFlags.None, ipep);
             ns.Write(data, 0, data.Length);
         }
 
@@ -181,7 +164,6 @@ namespace TCPServer
         {
             byte[] data = new byte[1024];
             data = Encoding.ASCII.GetBytes(packetType.ToString() + ":" + message.ToString());
-            //server.SendTo(data, data.Length, SocketFlags.None, ipep);
             ns.Write(data, 0, data.Length);
 
         }
@@ -189,44 +171,32 @@ namespace TCPServer
         public void SendPosition(int position)
         {
             byte[] data = new byte[1024];
-            data = Encoding.ASCII.GetBytes(PACKET_TYPE.PLACEMENT_PACKET.ToString() + ":" + position.ToString());
-            //server.SendTo(data, data.Length, SocketFlags.None, ipep);
+            data = Encoding.ASCII.GetBytes(PACKET_TYPE.SET_MY_MOVE.ToString() + ":" + position.ToString());
             ns.Write(data, 0, data.Length);
 
         }
 
-        //public GameInformation RecvGameInfo()
+        //public string TestRecieve()
         //{
-        //    byte[] data = new byte[1024];
-        //    int recv = server.ReceiveFrom(data, ref tmpRemote);
-
-        //    unsafe
+        //    if (ns.CanRead)
         //    {
-        //        byte* p = (byte*)&recv;
-        //    }
-        //}
-
-        public string TestRecieve()
-        {
-            if (ns.CanRead)
-            {
-                byte[] data = new byte[client.ReceiveBufferSize];
-                StringBuilder fullPacketMessage = new StringBuilder();
-                int numbersOfBytesRead;
+        //        byte[] data = new byte[client.ReceiveBufferSize];
+        //        StringBuilder fullPacketMessage = new StringBuilder();
+        //        int numbersOfBytesRead;
                 
-                do
-                {
-                    numbersOfBytesRead = ns.Read(data, 0, data.Length);
-                    if (numbersOfBytesRead <= 0)
-                        break;
-                    fullPacketMessage.AppendFormat("{0}", Encoding.ASCII.GetString(data, 0, numbersOfBytesRead));
-                } while (ns.DataAvailable);
+        //        do
+        //        {
+        //            numbersOfBytesRead = ns.Read(data, 0, data.Length);
+        //            if (numbersOfBytesRead <= 0)
+        //                break;
+        //            fullPacketMessage.AppendFormat("{0}", Encoding.ASCII.GetString(data, 0, numbersOfBytesRead));
+        //        } while (ns.DataAvailable);
 
-                return fullPacketMessage.ToString();
-            }
+        //        return fullPacketMessage.ToString();
+        //    }
 
-            return "Error in recv message!";
-        }
+        //    return "Error in recv message!";
+        //}
 
         void RecieveMessage()
         {
@@ -254,37 +224,6 @@ namespace TCPServer
                     lock(queueOfMessages)
                         queueOfMessages.Enqueue("Error in recv message! Were you disconnected? ");
                 }
-
-
-                //byte[] data = new byte[1024];
-                //int bytesRead = 0;
-                //int chunk = 0;
-
-                //while (bytesRead < 1024)
-                //{
-                //    //chunk = ns.Read(data, (int)bytesRead, data.Length - (int)bytesRead);
-                //    //if (chunk == 0)
-                //    //    break;
-                //    //bytesRead += chunk;
-
-                //    //if (Encoding.ASCII.GetString(data, 0, chunk).Substring(Encoding.ASCII.GetString(data, 0, chunk).Length - 2, 1) == PACKET_TYPE.END_OF_PACKET.ToString())
-                //    //    break;
-
-                //    chunk = ns.Read(data, 0, data.Length);
-                //    if (Encoding.ASCII.GetString(data, 0, chunk).Substring(Encoding.ASCII.GetString(data, 0, chunk).Length - 2, 1) == PACKET_TYPE.END_OF_PACKET.ToString())
-                //        break;
-                //}
-
-                //if (chunk == 0)
-                //    break;
-
-                ////int recv = ns.Read(data, 0, data.Length);
-                ////if (recv == 0)
-                ////    break;
-
-                //lock (queueOfMessages)
-                //    queueOfMessages.Enqueue(String.Format(new ASCIIEncoding().GetString(data)));
-                ////queueOfMessages.Enqueue(String.Format(Encoding.ASCII.GetString(data, 0, chunk)));
             }
         }
 
