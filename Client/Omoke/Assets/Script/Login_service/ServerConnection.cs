@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
-using TMPro;
 using TCPServer;
 
 /// <summary>
@@ -23,12 +22,19 @@ public class ServerConnection : MonoBehaviour {
 
     [SerializeField]
     string lostConnectScene = "Server Disconnect";
-    public string name = "";
+    [SerializeField]
+    string goToRoom = "Room";
+    public string userName = "";
+    public string opponentName = "";
+
+    public bool inRoom = false;
+    public bool opponentInRoom = false;
 
     ConnectionClass server = null;
 
     ConnectionStatus cts_connection_status = ConnectionStatus.NOT_CONNECTING;
 
+    //Used to initialise objects
     private void Start()
     {
         cts_connection_status = ConnectionStatus.NOT_CONNECTING;
@@ -43,10 +49,29 @@ public class ServerConnection : MonoBehaviour {
             return;
 
         //Dequeue extra messages that are sent
-        string tempstring = server.RecieveFromQueue();
+        if (!inRoom)
+        {
+            string tempstring = server.RecieveFromQueue();
 
-        if (tempstring != "No Message")
-            Debug.Log(tempstring + "(In Update)");
+            if (tempstring != "No Message")
+                Debug.Log(tempstring + "(In Update)");
+        }
+        else
+        {
+            RoomUpdate();
+        }
+    }
+
+    void RoomUpdate()
+    {
+        string tempstring = server.RecieveFromQueue();
+        if(tempstring.Contains(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString()))
+        {
+            tempstring = Unpack(tempstring);
+            opponentName = tempstring;
+            opponentInRoom = true;
+            Debug.Log("Opponent Joined the game:" + opponentName);
+        }
     }
 
     //Called at every few frames
@@ -104,17 +129,18 @@ public class ServerConnection : MonoBehaviour {
         do
         {
             DateTime a = DateTime.Now;
-            name = server.RecieveFromQueue();
+            userName = server.RecieveFromQueue();
             if (a > b)
                 break;
         }
-        while (!name.Contains(PACKET_TYPE.ASSIGN_NAME_PACKET.ToString()));
+        while (!userName.Contains(PACKET_TYPE.ASSIGN_NAME_PACKET.ToString()));
 
-        name = Unpack(name);
+        userName = Unpack(userName);
 
-        if (name != "No Message")
+        if (userName != "No Message")
         {
-            Debug.Log(name + "(In SendName)");
+            Debug.Log(userName + "(In SendName)");
+            PlayerPrefs.SetString("IGN", userName);
         }
     }
 
@@ -162,11 +188,14 @@ public class ServerConnection : MonoBehaviour {
         return tempstring;
     }
 
+    //Create a room with your name
     public void CreateRoom()
     {
+        inRoom = true;
         server.SendMessage(PACKET_TYPE.CREATE_NEW_ROOM, "I'm Creating a room");
     }
 
+    //Get a list of rooms from the server
     public string GetRoomList()
     {
         server.SendMessage(PACKET_TYPE.GET_ROOMS_TO_JOIN, "Give me Room list");
@@ -191,11 +220,55 @@ public class ServerConnection : MonoBehaviour {
         return "No Rooms Available.";
     }
 
+    //Join the room that is named specified
     public void JoinRoom(string roomName)
     {
         if (roomName == "")
             return;
         server.SendMessage(PACKET_TYPE.JOIN_ROOM, roomName);
+
+        //Check server reply
+        string tempstring;
+        DateTime b = DateTime.Now.AddSeconds(3);
+        do
+        {
+            DateTime a = DateTime.Now;
+            tempstring = server.RecieveFromQueue();
+            //Debug.Log(a + tempstring);
+            if (a > b)
+                break;
+        }
+        while (!tempstring.Contains(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString()));
+
+        if (tempstring.Contains(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString()))
+        {
+            inRoom = true;
+            tempstring = Unpack(tempstring);
+            Debug.Log(tempstring + "(In JoinRoom)");
+            opponentName = tempstring;
+            this.gameObject.GetComponent<SceneChange>().ChangeScene(goToRoom);
+            opponentInRoom = true;
+            return;
+        }
+        Debug.Log(tempstring + "(In JoinRoom)");
+    }
+
+    public string getOpponentName()
+    {
+        return opponentName;
+    }
+
+    public void LeaveTheRoom()
+    {
+        inRoom = false;
+        opponentInRoom = false;
+        server.SendMessage(PACKET_TYPE.LEAVE_ROOM, "I'm Leaving the room");
+    }
+
+    //Set the flag of ready or not to the server so the other client or the game will be able to start
+    public void RoomSetReady(bool readyOrNot)
+    {
+        server.SendMessage(PACKET_TYPE.SET_PLAYER_READY, (readyOrNot == true ? 1 : 0));
     }
 
     //When gameobject detect application has been closed this will close the connection to the server (prevent server crash)
@@ -211,6 +284,7 @@ public class ServerConnection : MonoBehaviour {
         server.DisconnectFromServer();
     }
 
+    //Unpack the messages received from the server
     private string Unpack(string message)
     { 
         return message.Substring(message.IndexOf(":") + 1);

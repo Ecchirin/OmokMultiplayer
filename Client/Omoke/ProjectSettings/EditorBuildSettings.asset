@@ -17,3 +17,6 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scene/Server Disconnect.unity
     guid: 443ebd218d390d34ebe620f26995e4b5
+  - enabled: 1
+    path: Assets/Scene/Room.unity
+    guid: eae98cd96734bfd43b4dd927dd60a2c9
