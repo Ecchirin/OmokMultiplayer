@@ -44,34 +44,9 @@ namespace TCPServer
 
         OPPONENT_DISCONNECTED,
 
+        ERROR_PACKET,
+
         TOTAL_TYPES_OF_PACKETS,
-    }
-
-
-    public class GameInformation
-    {
-        //Map data
-        private int[] mapData;
-
-        public void GenerateEmptyMap()
-        {
-            mapData = new int[225];
-            for (int i = 0; i < 225; ++i)
-            {
-                mapData[i] = 0;
-            }
-        }
-
-        public void SetPlacement(int index, int playerIndex)
-        {
-            if (playerIndex == 1 || playerIndex == 2)
-                mapData[index] = playerIndex;
-        }
-
-        public int[] GetMapData()
-        {
-            return mapData;
-        }
     }
 
     public class ConnectionClass
