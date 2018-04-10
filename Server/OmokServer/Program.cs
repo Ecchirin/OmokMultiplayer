@@ -98,7 +98,7 @@ namespace OmokServer
             
             string welcome = "Welcome to my test server!";
             data = Encoding.ASCII.GetBytes(welcome);
-            //client.NoDelay = true;
+            client.NoDelay = true;
 
             ns.Write(data, 0, data.Length);
 
@@ -181,14 +181,21 @@ namespace OmokServer
                         {
                             data = Encoding.ASCII.GetBytes(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString() + ":" + targetName);
 
+                            if (ns.CanWrite)
+                            {
+                                ns.Write(data, 0, data.Length);
+                                Console.WriteLine("Sent to joiner!!");
+                            }
+
                             byte[] data2 = new byte[1024];
                             data2 = Encoding.ASCII.GetBytes(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString() + ":" + clientName);
                             ThreadedTCPServer.SendMessageToOthers(this, data2);
                         }
                         else
+                        {
                             data = Encoding.ASCII.GetBytes(PACKET_TYPE.JOIN_ROOM_FAILURE.ToString() + ":" + "Failed to join room.");
-
-                        ns.Write(data, 0, data.Length);
+                            ns.Write(data, 0, data.Length);
+                        }
                     }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.GET_ROOMS_TO_JOIN.ToString()))
                     {
@@ -321,7 +328,13 @@ namespace OmokServer
                 //TcpClient tempClient = theReceiver.threadListener.AcceptTcpClient();
                 //NetworkStream ns = tempClient.GetStream();
                 if (theReceiver.ns.CanWrite)
+                {
+                    Console.WriteLine(theReceiver.clientName);
                     theReceiver.ns.Write(theMessage, 0, theMessage.Length);
+                    Console.WriteLine("Connected to the room");
+                }
+
+
                 //ns.Close();
                 //tempClient.Close();
             }
