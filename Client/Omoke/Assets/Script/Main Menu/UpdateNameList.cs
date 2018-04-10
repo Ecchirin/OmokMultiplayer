@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
+using TMPro;
 
 /// <summary>
 /// This class is use to refresh the player list in the main menu to know who is online.
@@ -27,10 +27,9 @@ public class UpdateNameList : MonoBehaviour {
 		
 	}
 
-    private void Awake() //This has to tell zi sheng
+    private void Awake()
     {
         refreshList();
-        //refreshList();
     }
 
     public void refreshList()
@@ -42,7 +41,8 @@ public class UpdateNameList : MonoBehaviour {
         }
         foreach (Transform child in contentView.transform)
         {
-            GameObject.Destroy(child.gameObject);
+            //GameObject.Destroy(child.gameObject);
+            Destroy(child.gameObject);
         }
         string players = GameObject.FindGameObjectWithTag(serverServiceTagName).GetComponent<ServerConnection>().GetPlayerList();
         string[] strArray = players.Split(',');
@@ -51,8 +51,7 @@ public class UpdateNameList : MonoBehaviour {
         for(int i = 0; i < strArray.Length; ++i)
         {
             GameObject newObject = Instantiate(exampleTextView, contentView.transform);
-            //newObject.transform.parent = contentView.transform;
-            newObject.GetComponent<Text>().text = strArray[i];
+            newObject.GetComponent<TextMeshProUGUI>().text = strArray[i];
         }
     }
 }

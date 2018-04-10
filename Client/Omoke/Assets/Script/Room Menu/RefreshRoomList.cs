@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
+using TMPro;
 
 /// <summary>
 /// Refresh the room list
@@ -45,7 +45,7 @@ public class RefreshRoomList : MonoBehaviour {
         {
             GameObject newObject = Instantiate(exampleRoomButton, contentView.transform);
             //newObject.transform.parent = contentView.transform;
-            newObject.GetComponentInChildren<Text>().text = strArray[i];
+            newObject.GetComponentInChildren<TextMeshProUGUI>().text = strArray[i];
         }
     }
 

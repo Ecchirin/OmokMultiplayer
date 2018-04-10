@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
+using TMPro;
 
 public class JoinRoomButton : MonoBehaviour {
 
@@ -25,6 +25,6 @@ public class JoinRoomButton : MonoBehaviour {
     {
         if (serverService == null)
             return;
-        serverService.JoinRoom(this.GetComponentInChildren<Text>().text);
+        serverService.JoinRoom(this.GetComponentInChildren<TextMeshProUGUI>().text);
     }
 }

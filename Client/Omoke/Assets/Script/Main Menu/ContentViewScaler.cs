@@ -12,6 +12,7 @@ public class ContentViewScaler : MonoBehaviour {
     private int amountOfPlayers;
     private RectTransform thisGameobject;
     private int playerCount = 0;
+    private GridLayoutGroup gridLayout = null;
 	// Use this for initialization
 	void Start () {
         defaultX = cellXSize;
@@ -19,6 +20,9 @@ public class ContentViewScaler : MonoBehaviour {
         cellXSize = this.GetComponent<GridLayoutGroup>().cellSize.x;
         cellYSize = this.GetComponent<GridLayoutGroup>().cellSize.y;
         thisGameobject = this.GetComponent<RectTransform>();
+        gridLayout = this.GetComponent<GridLayoutGroup>();
+        //gridLayout.cellSize = new Vector2(thisGameobject.rect.width, gridLayout.cellSize.y);
+        Debug.Log("ThisGameobject rect width: " + -thisGameobject.rect.width);
     }
 	
 	// Update is called once per frame
