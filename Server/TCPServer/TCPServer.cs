@@ -50,8 +50,63 @@ namespace TCPServer
         TOTAL_TYPES_OF_PACKETS,
     }
 
+    public struct CurrentGameInfo
+    {
+        public int[] mapData;
+        public bool isYourTurn;
+        public int myIndexNumber;
+        public int theWinner;
+    }
+
     public class ConnectionClass
     {
+        #region Utilities
+        /// <summary>
+        /// Tools for converting XY Pos into Index
+        /// </summary>
+        /// <returns>Index position of array</returns>
+        public static int ConvertXYPosition(int positionX, int positionY)
+        {
+            return positionY * 15 + positionX;
+        }
+
+        /// <summary>
+        /// Tools for converting index into position X and Y
+        /// </summary>
+        public static void ConvertArrayPosition(int index, out int positionX, out int positionY)
+        {
+            positionX = index % 15;
+            positionY = index / 15;
+        }
+
+        //public void TranslatePacketIntoGameInformation(string theMessage, out CurrentGameInfo theGame)
+        //{
+        //    //Remove packet header from message
+        //    theMessage = theMessage.Substring(theMessage.IndexOf(":") + 1);
+
+        //    //Get map data
+        //    string mapDataString = theMessage.Substring(0, theMessage.IndexOf(":"));
+
+        //    theGame.mapData = mapDataString.Split(',').Select(int.Parse).ToArray();
+        //}
+
+        public CurrentGameInfo CreateGameInformation()
+        {
+            CurrentGameInfo newGame = new CurrentGameInfo();
+            newGame.mapData = new int[225];
+            for (int i = 0; i < 225; ++i)
+            {
+                newGame.mapData[i] = 0;
+            }
+
+            newGame.isYourTurn = false;
+            newGame.theWinner = 0;
+            newGame.myIndexNumber = 0;
+
+            return newGame;
+        }
+        #endregion
+
         TcpClient client;
         NetworkStream ns;
         string ipAddress;
