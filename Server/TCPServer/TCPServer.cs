@@ -24,6 +24,7 @@ namespace TCPServer
 
         SET_PLAYER_READY,
         PLAYER_IS_READY,
+        PLAYER_UNREADY,
 
         START_GAME,
         START_GAME_SUCCESS,

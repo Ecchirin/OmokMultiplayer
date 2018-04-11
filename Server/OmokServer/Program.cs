@@ -71,7 +71,7 @@ namespace OmokServer
         /// </summary>
 
         //Stuff for Games
-        public bool inLobby, isSpectator;
+        public bool inLobby, isSpectator, isReady;
         public GameInformation gameSession;
 
         //Identification
@@ -88,6 +88,12 @@ namespace OmokServer
             client = threadListener.AcceptTcpClient();
             ns = client.GetStream();
             connections++;
+
+            inLobby = true;
+            isSpectator = false;
+            isReady = false;
+            gameSession = null;
+
             Console.WriteLine("New client accepted: {0} active connections",
                               connections);
         }
@@ -101,11 +107,6 @@ namespace OmokServer
             client.NoDelay = true;
 
             ns.Write(data, 0, data.Length);
-
-            inLobby = true;
-            isSpectator = false;
-            gameSession = null;
-
             //ThreadedTCPServer.AddNewConnectedClient(this);
 
             //TestMapData();
@@ -147,13 +148,8 @@ namespace OmokServer
                     // Console.WriteLine(Encoding.ASCII.GetString(data, 0, recv));
                     Console.WriteLine(fullPacketMessage.ToString());
 
-                    if (fullPacketMessage.ToString().Contains(PACKET_TYPE.SET_MY_MOVE.ToString()))
-                    {
-                        data = new byte[1024];
-                        data = Encoding.ASCII.GetBytes("I've got your placement message! Thanks!");
-                        ns.Write(data, 0, data.Length);
-                    }
-                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.GET_ALL_CONNECTED_USERS.ToString()))
+#region CheckWhatPacketIGet
+                    if (fullPacketMessage.ToString().Contains(PACKET_TYPE.GET_ALL_CONNECTED_USERS.ToString()))
                     {
                         data = new byte[1024];
                         data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_ALL_CONNECTED_USERS.ToString() + ":" + ThreadedTCPServer.GetListOfConnectedUsers());
@@ -180,22 +176,34 @@ namespace OmokServer
                         if (ThreadedTCPServer.JoinRoom(targetName, this))
                         {
                             data = Encoding.ASCII.GetBytes(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString() + ":" + targetName);
-
                             if (ns.CanWrite)
                             {
                                 ns.Write(data, 0, data.Length);
                                 Console.WriteLine("Sent to joiner!!");
                             }
-
-                            byte[] data2 = new byte[1024];
-                            data2 = Encoding.ASCII.GetBytes(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString() + ":" + clientName);
-                            ThreadedTCPServer.SendMessageToOthers(this, data2);
+                            ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.JOIN_ROOM_SUCCESS);
                         }
                         else
                         {
                             data = Encoding.ASCII.GetBytes(PACKET_TYPE.JOIN_ROOM_FAILURE.ToString() + ":" + "Failed to join room.");
                             ns.Write(data, 0, data.Length);
                         }
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.LEAVE_ROOM.ToString()))
+                    {
+                        ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.LEAVE_ROOM);
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.PLAYER_IS_READY.ToString()))
+                    {
+                        ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.PLAYER_IS_READY);
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.PLAYER_UNREADY.ToString()))
+                    {
+                        ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.PLAYER_UNREADY);
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.START_GAME.ToString()))
+                    {
+                        ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.START_GAME);
                     }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.GET_ROOMS_TO_JOIN.ToString()))
                     {
@@ -209,6 +217,8 @@ namespace OmokServer
                         data = Encoding.ASCII.GetBytes(PACKET_TYPE.ERROR_PACKET.ToString() + ":" + "You sent unknown packet?");
                         ns.Write(data, 0, data.Length);
                     }
+                    #endregion CheckWhatPacketIGet
+
                     //else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.MAP_DATA.ToString()))
                     //{
                     //    data = new byte[1024];
@@ -288,36 +298,89 @@ namespace OmokServer
             }
         }
 
-        public static void SendMessageToOthers(ConnectionThread theSender, byte[] theMessage)
+        public static void SendMessageToOthers(ConnectionThread theSender, PACKET_TYPE thePacketHeader, string extraMessage = "")
         {
+            byte[] data = new byte[1024];
             ConnectionThread theReceiver = null;
 
-            foreach (OngoingGame iter in listOfGamesWaiting)
+            foreach (GameInformation iter in listOfOngoingGames)
             {
-                if (iter.theHost.clientName == theSender.clientName)
+                if (iter.thePlayers.theHost.clientName == theSender.clientName)
                 {
-                    theReceiver = iter.theOpponent;
+                    theReceiver = iter.thePlayers.theOpponent;
+                    if (thePacketHeader == PACKET_TYPE.OPPONENT_DISCONNECTED)
+                    {
+                        listOfOngoingGames.Remove(iter);
+                        theReceiver.inLobby = true;
+                    }
                     break;
                 }
-                else if (iter.theOpponent.clientName == theSender.clientName)
+                else if (iter.thePlayers.theOpponent.clientName == theSender.clientName)
                 {
-                    theReceiver = iter.theHost;
+                    theReceiver = iter.thePlayers.theHost;
+                    if (thePacketHeader == PACKET_TYPE.OPPONENT_DISCONNECTED)
+                    {
+                        listOfOngoingGames.Remove(iter);
+                        theReceiver.inLobby = true;
+                    }
                     break;
                 }
             }
 
             if (theReceiver == null)
             {
-                foreach (GameInformation iter in listOfOngoingGames)
+                foreach (OngoingGame iter in listOfGamesWaiting)
                 {
-                    if (iter.thePlayers.theHost.clientName == theSender.clientName)
+                    if (iter.theHost.clientName == theSender.clientName)
                     {
-                        theReceiver = iter.thePlayers.theOpponent;
+                        theReceiver = iter.theOpponent;
+                        if (thePacketHeader == PACKET_TYPE.LEAVE_ROOM)
+                        {
+                            listOfGamesWaiting.Remove(iter);
+                            listOfHostedRooms.Add(theReceiver);
+                        }
+                        else if (thePacketHeader == PACKET_TYPE.OPPONENT_DISCONNECTED)
+                        {
+                            listOfGamesWaiting.Remove(iter);
+                            listOfHostedRooms.Add(theReceiver);
+                        }
+                        else if (thePacketHeader == PACKET_TYPE.START_GAME)
+                        {
+                            if (theReceiver.isReady && theSender.isReady)
+                            {
+                                thePacketHeader = PACKET_TYPE.START_GAME_SUCCESS;
+                                listOfGamesWaiting.Remove(iter);
+                                ThreadedTCPServer.StartNewGame(iter.theHost, iter.theOpponent);
+                            }
+                            else
+                                thePacketHeader = PACKET_TYPE.START_GAME_FAILURE;
+                        }
                         break;
                     }
-                    else if (iter.thePlayers.theOpponent.clientName == theSender.clientName)
+                    else if (iter.theOpponent.clientName == theSender.clientName)
                     {
-                        theReceiver = iter.thePlayers.theHost;
+                        theReceiver = iter.theHost;
+                        if (thePacketHeader == PACKET_TYPE.LEAVE_ROOM)
+                        {
+                            listOfGamesWaiting.Remove(iter);
+                            listOfHostedRooms.Add(theReceiver);
+                        }
+                        else if (thePacketHeader == PACKET_TYPE.OPPONENT_DISCONNECTED)
+                        {
+                            listOfGamesWaiting.Remove(iter);
+                            listOfHostedRooms.Add(theReceiver);
+                        }
+                        else if (thePacketHeader == PACKET_TYPE.START_GAME)
+                        {
+                            if (theReceiver.isReady && theSender.isReady)
+                            {
+                                thePacketHeader = PACKET_TYPE.START_GAME_SUCCESS;
+                                listOfGamesWaiting.Remove(iter);
+                                ThreadedTCPServer.StartNewGame(iter.theHost, iter.theOpponent);
+                            }
+                            else
+                                thePacketHeader = PACKET_TYPE.START_GAME_FAILURE;
+                        }
                         break;
                     }
                 }
@@ -325,16 +388,43 @@ namespace OmokServer
 
             if (theReceiver != null)
             {
+                if (thePacketHeader == PACKET_TYPE.JOIN_ROOM_SUCCESS)
+                {
+                    data = Encoding.ASCII.GetBytes(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString() + ":" + theSender.clientName);
+                }
+                else if (thePacketHeader == PACKET_TYPE.LEAVE_ROOM)
+                {
+                    data = Encoding.ASCII.GetBytes(PACKET_TYPE.LEAVE_ROOM.ToString() + ":" + theSender.clientName);
+                }
+                else if (thePacketHeader == PACKET_TYPE.OPPONENT_DISCONNECTED)
+                {
+                    data = Encoding.ASCII.GetBytes(PACKET_TYPE.OPPONENT_DISCONNECTED.ToString() + ":" + theSender.clientName);
+                }
+                else if (thePacketHeader == PACKET_TYPE.PLAYER_IS_READY)
+                {
+                    data = Encoding.ASCII.GetBytes(PACKET_TYPE.PLAYER_IS_READY.ToString() + ":" + theSender.clientName);
+                }
+                else if (thePacketHeader == PACKET_TYPE.PLAYER_UNREADY)
+                {
+                    data = Encoding.ASCII.GetBytes(PACKET_TYPE.PLAYER_UNREADY.ToString() + ":" + theSender.clientName);
+                }
+                else if (thePacketHeader == PACKET_TYPE.START_GAME_SUCCESS)
+                {
+                    data = Encoding.ASCII.GetBytes(PACKET_TYPE.START_GAME_SUCCESS.ToString() + ":" + extraMessage);
+                }
+                else if (thePacketHeader == PACKET_TYPE.START_GAME_FAILURE)
+                {
+                    data = Encoding.ASCII.GetBytes(PACKET_TYPE.START_GAME_FAILURE.ToString() + ":" + extraMessage);
+                }
+
                 //TcpClient tempClient = theReceiver.threadListener.AcceptTcpClient();
                 //NetworkStream ns = tempClient.GetStream();
                 if (theReceiver.ns.CanWrite)
                 {
-                    Console.WriteLine(theReceiver.clientName);
-                    theReceiver.ns.Write(theMessage, 0, theMessage.Length);
-                    Console.WriteLine("Connected to the room");
+                    //Console.WriteLine(theReceiver.clientName);
+                    theReceiver.ns.Write(data, 0, data.Length);
+                    Console.WriteLine(theSender.clientName + " Connected to the room of " + theReceiver.clientName);
                 }
-
-
                 //ns.Close();
                 //tempClient.Close();
             }
@@ -441,21 +531,23 @@ namespace OmokServer
 
         public static void ClientDisconnected(ConnectionThread theClient)
         {
-            foreach (GameInformation iter in listOfOngoingGames)
-            {
-                if (iter.thePlayers.theHost.clientName == theClient.clientName)
-                {
-                    iter.thePlayers.theOpponent.inLobby = true;
-                    listOfOngoingGames.Remove(iter);
-                    break;
-                }
-                else if (iter.thePlayers.theOpponent.clientName == theClient.clientName)
-                {
-                    iter.thePlayers.theHost.inLobby = true;
-                    listOfOngoingGames.Remove(iter);
-                    break;
-                }
-            }
+            ThreadedTCPServer.SendMessageToOthers(theClient, PACKET_TYPE.OPPONENT_DISCONNECTED);
+
+            //foreach (GameInformation iter in listOfOngoingGames)
+            //{
+            //    if (iter.thePlayers.theHost.clientName == theClient.clientName)
+            //    {
+            //        iter.thePlayers.theOpponent.inLobby = true;
+            //        listOfOngoingGames.Remove(iter);
+            //        break;
+            //    }
+            //    else if (iter.thePlayers.theOpponent.clientName == theClient.clientName)
+            //    {
+            //        iter.thePlayers.theHost.inLobby = true;
+            //        listOfOngoingGames.Remove(iter);
+            //        break;
+            //    }
+            //}
 
             foreach (ConnectionThread iter in listOfConnections)
             {
