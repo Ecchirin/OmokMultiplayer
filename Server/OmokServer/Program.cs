@@ -12,6 +12,16 @@ namespace OmokServer
     public struct OngoingGame
     {
         public ConnectionThread theHost, theOpponent;
+        public int hostIndex, opponentIndex;
+        public bool hostTurn, opponentTurn;
+
+        public OngoingGame(ConnectionThread theHost, ConnectionThread theOpponent)
+        {
+            this.theHost = theHost;
+            this.theOpponent = theOpponent;
+            hostIndex = opponentIndex = 0;
+            hostTurn = opponentTurn = false;
+        }
     }
 
     public class GameInformation
@@ -24,12 +34,146 @@ namespace OmokServer
 
         public GameInformation(ConnectionThread theHost, ConnectionThread theOpponent)
         {
-            thePlayers.theHost = theHost;
-            thePlayers.theOpponent = theOpponent;
+            thePlayers = new OngoingGame(theHost, theOpponent);
             GenerateEmptyMap();
+            InitPlayers();
         }
 
-        public void GenerateEmptyMap()
+        void InitPlayers()
+        {
+            Random rand = new Random();
+            if (rand.Next(1, 2) == 1)
+            {
+                thePlayers.hostIndex = 1;
+                thePlayers.opponentIndex = 2;
+                thePlayers.hostTurn = true;
+
+                byte[] data = new byte[1024];
+                data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_RAW_GAME_INFO.ToString() + ":" +
+                    /* Map Data */
+                    string.Join(",", GetMapData()) + ":" +
+                    /* Whos Turn */
+                    "1" + ":" +
+                    /* index num */
+                    "1" + ":" +
+                    /* Winner */
+                    "0");
+                do
+                {
+                    thePlayers.theHost.ns.Write(data, 0, data.Length);
+                }
+                while (!thePlayers.theHost.ns.CanWrite);
+
+                data = new byte[1024];
+                data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_RAW_GAME_INFO.ToString() + ":" +
+                     /* Map Data */
+                     string.Join(",", GetMapData()) + ":" +
+                     /* Whos Turn 1 or 0 */
+                     "0" + ":" +
+                     /* index num 1 or 2 */
+                     "2" + ":" +
+                     /* Winner 0 = nobody, 1 = p1, 2 = p2 */
+                     "0");
+                do
+                {
+                    thePlayers.theOpponent.ns.Write(data, 0, data.Length);
+                }
+                while (!thePlayers.theOpponent.ns.CanWrite);
+            }
+            else
+            {
+                thePlayers.hostIndex = 2;
+                thePlayers.opponentIndex = 1;
+                thePlayers.opponentTurn = true;
+
+                byte[] data = new byte[1024];
+                data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_RAW_GAME_INFO.ToString() + ":" +
+                     /* Map Data */
+                     string.Join(",", GetMapData()) + ":" +
+                     /* Whos Turn 1 or 0 */
+                     "0" + ":" +
+                     /* index num 1 or 2 */
+                     "2" + ":" +
+                     /* Winner 0 = nobody, 1 = p1, 2 = p2 */
+                     "0");
+                do
+                {
+                    thePlayers.theHost.ns.Write(data, 0, data.Length);
+                }
+                while (!thePlayers.theHost.ns.CanWrite);
+
+                data = new byte[1024];
+                data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_RAW_GAME_INFO.ToString() + ":" +
+                    /* Map Data */
+                    string.Join(",", GetMapData()) + ":" +
+                    /* Whos Turn 1 or 0 */
+                    "1" + ":" +
+                    /* index num 1 or 2 */
+                    "1" + ":" +
+                    /* Winner 0 = nobody, 1 = p1, 2 = p2 */
+                    "0");
+                do
+                {
+                    thePlayers.theOpponent.ns.Write(data, 0, data.Length);
+                }
+                while (!thePlayers.theOpponent.ns.CanWrite);
+            }
+        }
+
+        public void SendTurnInfo(int placementIndex)
+        {
+            Console.WriteLine("Current turn is " + (thePlayers.hostTurn ? "the Host." : "the Opponent"));
+            if (thePlayers.hostTurn)
+            {
+                SetPlacement(placementIndex, thePlayers.hostIndex);
+            }
+            else if (thePlayers.opponentTurn)
+            {
+                SetPlacement(placementIndex, thePlayers.opponentIndex);
+            }
+
+            thePlayers.hostTurn = !thePlayers.hostTurn;
+            thePlayers.opponentTurn = !thePlayers.opponentTurn;
+
+            //Send to host first
+            byte[] data = new byte[1024];
+            data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_RAW_GAME_INFO.ToString() + ":" +
+                /* Map Data */
+                string.Join(",", GetMapData()) + ":" +
+                /* Whos Turn */
+                (thePlayers.hostTurn ? thePlayers.hostIndex.ToString() : thePlayers.opponentIndex.ToString()) + ":" +
+                /* index num */
+                thePlayers.hostIndex.ToString() + ":" +
+                /* Winner */
+                "0");
+            do
+            {
+                thePlayers.theHost.ns.Write(data, 0, data.Length);
+            }
+            while (!thePlayers.theHost.ns.CanWrite);
+
+            //Send to opponent
+            data = new byte[1024];
+            data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_RAW_GAME_INFO.ToString() + ":" +
+                 /* Map Data */
+                 string.Join(",", GetMapData()) + ":" +
+                 /* Whos Turn 1 or 0 */
+                 (thePlayers.opponentTurn ? thePlayers.opponentIndex.ToString() : thePlayers.hostIndex.ToString()) + ":" +
+                 /* index num 1 or 2 */
+                 thePlayers.opponentIndex.ToString() + ":" +
+                 /* Winner 0 = nobody, 1 = p1, 2 = p2 */
+                 "0");
+            do
+            {
+                thePlayers.theOpponent.ns.Write(data, 0, data.Length);
+            }
+            while (!thePlayers.theOpponent.ns.CanWrite);
+
+            Console.WriteLine("New turn is " + (thePlayers.hostTurn ? "the Host." : "the Opponent"));
+
+        }
+
+        void GenerateEmptyMap()
         {
             mapData = new int[225];
             for (int i = 0; i < 225; ++i)
@@ -40,8 +184,7 @@ namespace OmokServer
 
         public void SetPlacement(int index, int playerIndex)
         {
-            if (playerIndex == 1 || playerIndex == 2)
-                mapData[index] = playerIndex;
+            mapData[index] = playerIndex;
         }
 
         public int[] GetMapData()
@@ -221,8 +364,8 @@ namespace OmokServer
                     {
                         if (fullPacketMessage.ToString().Contains(PACKET_TYPE.SET_MY_MOVE.ToString()))
                         {
-                            string removeHeader = fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":") + 1);
-
+                            int placementIndex = Int32.Parse(fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":") + 1));
+                            gameSession.SendTurnInfo(placementIndex);
                         }
                     }
                     #endregion CheckWhatPacketIGet
@@ -365,7 +508,7 @@ namespace OmokServer
                             {
                                 thePacketHeader = PACKET_TYPE.START_GAME_SUCCESS;
                                 listOfGamesWaiting.Remove(iter);
-                                ThreadedTCPServer.StartNewGame(iter.theHost, iter.theOpponent);
+                                iter.theHost.gameSession = iter.theOpponent.gameSession = ThreadedTCPServer.StartNewGame(iter.theHost, iter.theOpponent);
                                 theReceiver.isReady = false;
                                 theSender.isReady = false;
                             }
@@ -577,7 +720,6 @@ namespace OmokServer
         public static GameInformation StartNewGame(ConnectionThread theHost, ConnectionThread theOpponent)
         {
             GameInformation newGame = new GameInformation(theHost, theOpponent);
-            newGame.GenerateEmptyMap();
             listOfOngoingGames.Add(newGame);
             return newGame;
         }

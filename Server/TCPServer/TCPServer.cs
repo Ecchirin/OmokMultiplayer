@@ -36,6 +36,7 @@ namespace TCPServer
         GET_ROOMS_TO_JOIN,
         GET_ROOMS_TO_SPECTATE,
         GET_CURRENT_USERS_IN_LOBBY,
+        GET_RAW_GAME_INFO,
 
         SET_MY_MOVE,
         MOVE_REJECTED,
@@ -79,16 +80,27 @@ namespace TCPServer
             positionY = index / 15;
         }
 
-        //public void TranslatePacketIntoGameInformation(string theMessage, out CurrentGameInfo theGame)
-        //{
-        //    //Remove packet header from message
-        //    theMessage = theMessage.Substring(theMessage.IndexOf(":") + 1);
+        public void TranslatePacketIntoGameInformation(string theMessage, ref CurrentGameInfo theGame)
+        {
+            //Remove packet header from message
+            theMessage = theMessage.Substring(theMessage.IndexOf(":") + 1);
 
-        //    //Get map data
-        //    string mapDataString = theMessage.Substring(0, theMessage.IndexOf(":"));
+            //Get map data
+            string mapDataString = theMessage.Substring(0, theMessage.IndexOf(":"));
+            theGame.mapData = mapDataString.Split(',').Select(int.Parse).ToArray();
 
-        //    theGame.mapData = mapDataString.Split(',').Select(int.Parse).ToArray();
-        //}
+            //cut map data away
+            theMessage = theMessage.Substring(theMessage.IndexOf(":") + 1);
+            theGame.isYourTurn = (theMessage.Substring(0, 1) == 1.ToString() ? true : false);
+
+            //cut away boolean check of player turn
+            theMessage = theMessage.Substring(theMessage.IndexOf(":") + 1);
+            theGame.myIndexNumber = Int32.Parse(theMessage.Substring(0, 1));
+
+            //Get index 
+            theMessage = theMessage.Substring(theMessage.IndexOf(":") + 1);
+            theGame.theWinner = Int32.Parse(theMessage.Substring(0, 1));
+        }
 
         public CurrentGameInfo CreateGameInformation()
         {
