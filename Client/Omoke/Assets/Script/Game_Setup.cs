@@ -50,6 +50,7 @@ public class Game_Setup : MonoBehaviour {
         float tileY = tiles.GetComponent<SpriteRenderer>().bounds.size.y * scaleOfTile;
         //Get where to start from main camera
         float coordY = mainCamera.ViewportToWorldPoint((new Vector3(0, startY, 10))).y;
+        int tileID = 0;
         //Spawn the board
         for (int row = 0; row < boardSize; ++row)
         {
@@ -62,6 +63,8 @@ public class Game_Setup : MonoBehaviour {
                 Transform go = Instantiate(tiles, tilePosition, Quaternion.identity);
                 go.parent = this.transform;
                 go.localScale = new Vector3(scaleOfTile, scaleOfTile, 1);
+                go.name = tileID.ToString();
+                ++tileID;
                 coordX += tileX;
             }
             coordY -= tileY;

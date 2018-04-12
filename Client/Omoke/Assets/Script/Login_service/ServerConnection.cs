@@ -37,6 +37,9 @@ public class ServerConnection : MonoBehaviour {
 
     ConnectionClass server = null;
 
+    public bool receiveNewCurrentGamePacket = false;
+    CurrentGameInfo currentGame /*= new CurrentGameInfo()*/;
+
     ConnectionStatus cts_connection_status = ConnectionStatus.NOT_CONNECTING;
 
     //Used to initialise objects
@@ -44,6 +47,7 @@ public class ServerConnection : MonoBehaviour {
     {
         cts_connection_status = ConnectionStatus.NOT_CONNECTING;
         server = null;
+        //currentGame = server.CreateGameInformation();
     }
 
     // Update is called once per frame
@@ -68,17 +72,25 @@ public class ServerConnection : MonoBehaviour {
         else if (!inRoom && inGame)
         {
             GameRoomUpdate();
+            //Debug.Log("In game room");
         }
     }
 
     void GameRoomUpdate()
     {
         string tempstring = server.RecieveFromQueue();
-        if (tempstring.Contains(PACKET_TYPE.OPPONENT_DISCONNECTED.ToString()))
+        if(tempstring.Contains(PACKET_TYPE.GET_RAW_GAME_INFO.ToString()))
+        {
+            server.TranslatePacketIntoGameInformation(tempstring, ref currentGame);
+            receiveNewCurrentGamePacket = true;
+            Debug.Log("GOT A PACKET OF GAME DATA");
+        }
+        else if (tempstring.Contains(PACKET_TYPE.OPPONENT_DISCONNECTED.ToString()))
         {
             LeaveTheRoom();
             this.GetComponent<SceneChange>().ChangeScene("Room menu");
         }
+
     }
 
     void RoomUpdate()
@@ -117,6 +129,7 @@ public class ServerConnection : MonoBehaviour {
             opponentIsReady = false;
             isHost = false;
             inGame = true;
+            receiveNewCurrentGamePacket = false;
             this.GetComponent<SceneChange>().ChangeScene(goToGameRoom);
             Debug.Log("Change to game already");
         }
@@ -137,6 +150,25 @@ public class ServerConnection : MonoBehaviour {
             cts_connection_status = ConnectionStatus.NOT_CONNECTING;
             this.gameObject.GetComponent<SceneChange>().ChangeScene(lostConnectScene);
         }
+    }
+
+    //Send click location of board
+    public void SetMoveOnBoard(int boardArray)
+    {
+        server.SendMessage(PACKET_TYPE.SET_MY_MOVE, boardArray);
+        string tempstring = "";
+        DateTime b = DateTime.Now.AddSeconds(3);
+        do
+        {
+            DateTime a = DateTime.Now;
+            tempstring = server.RecieveFromQueue();
+            if (a > b)
+                return;
+        }
+        while (!tempstring.Contains(PACKET_TYPE.GET_RAW_GAME_INFO.ToString()));
+        server.TranslatePacketIntoGameInformation(tempstring, ref currentGame);
+        receiveNewCurrentGamePacket = true;
+        Debug.Log("GOT A PACKET OF GAME DATA");
     }
 
     //Connect to server
@@ -170,6 +202,7 @@ public class ServerConnection : MonoBehaviour {
         cts_connection_status = ConnectionStatus.CONNECTED;
         PlayerPrefs.SetString("ServerIP", serverIP);
         PlayerPrefs.SetInt("ServerPort", portNumber);
+        currentGame = server.CreateGameInformation();
         if (showText)
             showText.StartCoroutine(showText.DisplayText("Connection established", 3));
     }
@@ -231,16 +264,15 @@ public class ServerConnection : MonoBehaviour {
     }
 
     //Get the data of the map
-    public string GetMapData()
+    public int[] GetMapData()
     {
-        server.SendMessage(PACKET_TYPE.GET_MAP_DATA, "Give me map data");
-        string tempstring = server.RecieveFromQueue();
-
-        if (tempstring != "No Message")
-            Debug.Log(tempstring + "(In GetMapData)");
-        return tempstring;
+        return currentGame.mapData;
     }
 
+    public int MyNumber()
+    {
+        return currentGame.myIndexNumber;
+    }
     //Create a room with your name
     public void CreateRoom()
     {

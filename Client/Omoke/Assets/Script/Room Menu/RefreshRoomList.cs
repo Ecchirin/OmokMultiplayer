@@ -22,7 +22,9 @@ public class RefreshRoomList : MonoBehaviour {
         serverService = GameObject.FindGameObjectWithTag(serverServiceTagName).GetComponent<ServerConnection>();
         if (serverService == null)
             Debug.Log("Error: Server Service cannot be found");
-	}
+        RefreshList();
+
+    }
 	
 	// Update is called once per frame
 	void Update () {
