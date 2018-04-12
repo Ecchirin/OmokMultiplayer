@@ -24,11 +24,16 @@ public class ServerConnection : MonoBehaviour {
     string lostConnectScene = "Server Disconnect";
     [SerializeField]
     string goToRoom = "Room";
+    [SerializeField]
+    string goToGameRoom = "Game Room";
     public string userName = "";
     public string opponentName = "";
 
     public bool inRoom = false;
+    public bool inGame = false;
     public bool opponentInRoom = false;
+    public bool opponentIsReady = false;
+    public bool isHost = false;
 
     ConnectionClass server = null;
 
@@ -49,28 +54,76 @@ public class ServerConnection : MonoBehaviour {
             return;
 
         //Dequeue extra messages that are sent
-        if (!inRoom)
+        if (!inRoom && !inGame)
         {
             string tempstring = server.RecieveFromQueue();
 
             if (tempstring != "No Message")
                 Debug.Log(tempstring + "(In Update)");
         }
-        else
+        else if(inRoom && !inGame)
         {
             RoomUpdate();
+        }
+        else if (!inRoom && inGame)
+        {
+            GameRoomUpdate();
+        }
+    }
+
+    void GameRoomUpdate()
+    {
+        string tempstring = server.RecieveFromQueue();
+        if (tempstring.Contains(PACKET_TYPE.OPPONENT_DISCONNECTED.ToString()))
+        {
+            LeaveTheRoom();
+            this.GetComponent<SceneChange>().ChangeScene("Room menu");
         }
     }
 
     void RoomUpdate()
     {
         string tempstring = server.RecieveFromQueue();
+        //Debug.Log(tempstring);
         if(tempstring.Contains(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString()))
         {
             tempstring = Unpack(tempstring);
             opponentName = tempstring;
             opponentInRoom = true;
             Debug.Log("Opponent Joined the game:" + opponentName);
+        }
+        else if(tempstring.Contains(PACKET_TYPE.LEAVE_ROOM.ToString()) || tempstring.Contains(PACKET_TYPE.OPPONENT_DISCONNECTED.ToString()))
+        {
+            Debug.Log("Opponent Left the room: " + opponentName);
+            opponentName = "";
+            opponentInRoom = false;
+            opponentIsReady = false;
+            isHost = true;
+        }
+        else if (tempstring.Contains(PACKET_TYPE.PLAYER_IS_READY.ToString()))
+        {
+            opponentIsReady = true;
+            Debug.Log("Opponent ready");
+        }
+        else if (tempstring.Contains(PACKET_TYPE.PLAYER_UNREADY.ToString()))
+        {
+            opponentIsReady = false;
+            Debug.Log("Opponent not ready");
+        }
+        else if (tempstring.Contains(PACKET_TYPE.START_GAME_SUCCESS.ToString()))
+        {
+            inRoom = false;
+            opponentInRoom = false;
+            opponentIsReady = false;
+            isHost = false;
+            inGame = true;
+            this.GetComponent<SceneChange>().ChangeScene(goToGameRoom);
+            Debug.Log("Change to game already");
+        }
+        else if (tempstring.Contains(PACKET_TYPE.START_GAME_FAILURE.ToString()))
+        {
+            LeaveTheRoom();
+            this.GetComponent<SceneChange>().ChangeScene("Room menu");
         }
     }
 
@@ -191,6 +244,7 @@ public class ServerConnection : MonoBehaviour {
     //Create a room with your name
     public void CreateRoom()
     {
+        isHost = true;
         inRoom = true;
         server.SendMessage(PACKET_TYPE.CREATE_NEW_ROOM, "I'm Creating a room");
     }
@@ -225,8 +279,9 @@ public class ServerConnection : MonoBehaviour {
     {
         if (roomName == "")
             return;
+        opponentIsReady = false;
         server.SendMessage(PACKET_TYPE.JOIN_ROOM, roomName);
-
+        isHost = false;
         //Check server reply
         string tempstring;
         DateTime b = DateTime.Now.AddSeconds(3);
@@ -260,15 +315,31 @@ public class ServerConnection : MonoBehaviour {
 
     public void LeaveTheRoom()
     {
-        inRoom = false;
-        opponentInRoom = false;
+        //isHost = false;
+        inRoom = isHost = inGame = opponentIsReady = opponentInRoom = false;
+        //inGame = false;
+        //opponentIsReady = false;
+        //opponentInRoom = false;
         server.SendMessage(PACKET_TYPE.LEAVE_ROOM, "I'm Leaving the room");
     }
 
     //Set the flag of ready or not to the server so the other client or the game will be able to start
     public void RoomSetReady(bool readyOrNot)
     {
-        server.SendMessage(PACKET_TYPE.SET_PLAYER_READY, (readyOrNot == true ? 1 : 0));
+        server.SendMessage((readyOrNot == true ? PACKET_TYPE.PLAYER_IS_READY : PACKET_TYPE.PLAYER_UNREADY), "");
+        Debug.Log("Player setting ready or not");
+    }
+
+    //If this is host send start game
+    public void RoomStartGame()
+    {
+        if (isHost)
+        {
+            server.SendMessage(PACKET_TYPE.START_GAME, "");
+            Debug.Log("Host starting game");
+            return;
+        }
+        Debug.Log("Waiting for host to start");
     }
 
     //When gameobject detect application has been closed this will close the connection to the server (prevent server crash)

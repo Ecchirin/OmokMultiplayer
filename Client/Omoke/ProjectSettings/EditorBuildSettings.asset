@@ -20,3 +20,6 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scene/Room.unity
     guid: eae98cd96734bfd43b4dd927dd60a2c9
+  - enabled: 1
+    path: Assets/Scene/Game Room.unity
+    guid: c358c36e592e5b54d8b0b66083eec6ae
