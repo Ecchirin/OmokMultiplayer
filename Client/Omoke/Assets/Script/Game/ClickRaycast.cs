@@ -27,7 +27,7 @@ public class ClickRaycast : MonoBehaviour {
             Debug.Log("Error cannot connect to server");
             return;
         }
-        if (Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButtonDown(0) && server.GetMyTurn())
         {
             SendTileName();
         }
@@ -44,5 +44,4 @@ public class ClickRaycast : MonoBehaviour {
                 server.SetMoveOnBoard(int.Parse(hit.transform.gameObject.name));
             }
     }
-
 }

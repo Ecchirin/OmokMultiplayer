@@ -34,6 +34,7 @@ public class ServerConnection : MonoBehaviour {
     public bool opponentInRoom = false;
     public bool opponentIsReady = false;
     public bool isHost = false;
+    public bool isSpectator = false;
 
     ConnectionClass server = null;
 
@@ -68,10 +69,12 @@ public class ServerConnection : MonoBehaviour {
         else if(inRoom && !inGame)
         {
             RoomUpdate();
+            //Debug.Log("(In Room Update)");
         }
         else if (!inRoom && inGame)
         {
             GameRoomUpdate();
+            //Debug.Log("(In Game Update)");
             //Debug.Log("In game room");
         }
     }
@@ -79,12 +82,14 @@ public class ServerConnection : MonoBehaviour {
     void GameRoomUpdate()
     {
         string tempstring = server.RecieveFromQueue();
+        Debug.Log("GameRoomUpdate: " + tempstring);
         if(tempstring.Contains(PACKET_TYPE.GET_RAW_GAME_INFO.ToString()))
         {
             server.TranslatePacketIntoGameInformation(tempstring, ref currentGame);
             receiveNewCurrentGamePacket = true;
             Debug.Log(currentGame.theWinner + " is the winner");
             Debug.Log("GOT A PACKET OF GAME DATA");
+            Debug.Log(currentGame.isYourTurn + " isit your turn?");
         }
         else if (tempstring.Contains(PACKET_TYPE.OPPONENT_DISCONNECTED.ToString()))
         {
@@ -97,8 +102,8 @@ public class ServerConnection : MonoBehaviour {
     void RoomUpdate()
     {
         string tempstring = server.RecieveFromQueue();
-        //Debug.Log(tempstring);
-        if(tempstring.Contains(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString()))
+        Debug.Log("Room Update: " + tempstring);
+        if (tempstring.Contains(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString()))
         {
             tempstring = Unpack(tempstring);
             opponentName = tempstring;
@@ -116,12 +121,12 @@ public class ServerConnection : MonoBehaviour {
         else if (tempstring.Contains(PACKET_TYPE.PLAYER_IS_READY.ToString()))
         {
             opponentIsReady = true;
-            Debug.Log("Opponent ready");
+            //Debug.Log("Opponent ready");
         }
         else if (tempstring.Contains(PACKET_TYPE.PLAYER_UNREADY.ToString()))
         {
             opponentIsReady = false;
-            Debug.Log("Opponent not ready");
+            //Debug.Log("Opponent not ready");
         }
         else if (tempstring.Contains(PACKET_TYPE.START_GAME_SUCCESS.ToString()))
         {
@@ -132,12 +137,21 @@ public class ServerConnection : MonoBehaviour {
             inGame = true;
             receiveNewCurrentGamePacket = false;
             this.GetComponent<SceneChange>().ChangeScene(goToGameRoom);
-            Debug.Log("Change to game already");
+            //Debug.Log("Game success: " + tempstring);
+            //Debug.Log("Change to game already");
         }
         else if (tempstring.Contains(PACKET_TYPE.START_GAME_FAILURE.ToString()))
         {
             LeaveTheRoom();
             this.GetComponent<SceneChange>().ChangeScene("Room menu");
+        }
+        else if (tempstring.Contains(PACKET_TYPE.GET_RAW_GAME_INFO.ToString()))
+        {
+            server.TranslatePacketIntoGameInformation(tempstring, ref currentGame);
+            receiveNewCurrentGamePacket = true;
+            Debug.Log(currentGame.theWinner + " is the winner");
+            Debug.Log("GOT A PACKET OF GAME DATA");
+            Debug.Log(currentGame.isYourTurn + " isit your turn?");
         }
     }
 
@@ -171,6 +185,7 @@ public class ServerConnection : MonoBehaviour {
         receiveNewCurrentGamePacket = true;
         Debug.Log("GOT A PACKET OF GAME DATA");
         Debug.Log(currentGame.theWinner + " is the winner");
+        Debug.Log(currentGame.isYourTurn + " isit your turn?");
     }
 
     //Connect to server
@@ -218,6 +233,7 @@ public class ServerConnection : MonoBehaviour {
         {
             DateTime a = DateTime.Now;
             userName = server.RecieveFromQueue();
+            Debug.Log("SendName: " + userName);
             if (a > b)
                 break;
         }
@@ -250,6 +266,7 @@ public class ServerConnection : MonoBehaviour {
         {
             DateTime a = DateTime.Now;
             tempstring = server.RecieveFromQueue();
+            Debug.Log("GetplayerList: " + tempstring);
             if (a > b)
                 break;
         }
@@ -271,8 +288,21 @@ public class ServerConnection : MonoBehaviour {
         return currentGame.mapData;
     }
 
+    //Get the winner
+    public int GetWinner()
+    {
+        return currentGame.theWinner;
+    }
+    
+    public bool GetMyTurn()
+    {
+        //Debug.Log(currentGame);
+        return currentGame.isYourTurn;
+    }
+
     public int MyNumber()
     {
+        Debug.Log(currentGame.myIndexNumber + " is my number");
         return currentGame.myIndexNumber;
     }
     //Create a room with your name
@@ -293,6 +323,7 @@ public class ServerConnection : MonoBehaviour {
         {
             DateTime a = DateTime.Now;
             tempstring = server.RecieveFromQueue();
+            Debug.Log("GetRoomList: " + tempstring);
             if (a > b)
                 break;
         }
@@ -308,11 +339,36 @@ public class ServerConnection : MonoBehaviour {
         return "No Rooms Available.";
     }
 
+    public string GetSpectateRoomList()
+    {
+        server.SendMessage(PACKET_TYPE.GET_ROOMS_TO_SPECTATE, "Give me Room spectate list");
+        string tempstring;
+        DateTime b = DateTime.Now.AddSeconds(3);
+        do
+        {
+            DateTime a = DateTime.Now;
+            tempstring = server.RecieveFromQueue();
+            Debug.Log("GetSpectateRoomList: " + tempstring);
+            if (a > b)
+                break;
+        }
+        while (!tempstring.Contains(PACKET_TYPE.GET_ROOMS_TO_SPECTATE.ToString()));
+
+        tempstring = Unpack(tempstring);
+
+        if (tempstring != "No Message")
+        {
+            Debug.Log(tempstring + "(In GetSpectateRoomList)");
+            return tempstring;
+        }
+        return "No Rooms Available.";
+    }
+
     //Join the room that is named specified
     public void JoinRoom(string roomName)
     {
-        if (roomName == "")
-            return;
+        //if (roomName == "")
+        //    return;
         opponentIsReady = false;
         server.SendMessage(PACKET_TYPE.JOIN_ROOM, roomName);
         isHost = false;
@@ -323,6 +379,7 @@ public class ServerConnection : MonoBehaviour {
         {
             DateTime a = DateTime.Now;
             tempstring = server.RecieveFromQueue();
+            Debug.Log("JoinRoom: " + tempstring);
             //Debug.Log(a + tempstring);
             if (a > b)
                 break;
@@ -339,7 +396,38 @@ public class ServerConnection : MonoBehaviour {
             opponentInRoom = true;
             return;
         }
-        Debug.Log(tempstring + "(In JoinRoom)");
+        //Debug.Log(tempstring + "(In JoinRoom)");
+    }
+
+    public void JoinRoomSpectator(string roomName)
+    {
+        //if (roomName == "")
+        //    return;
+        //opponentIsReady = false;
+        server.SendMessage(PACKET_TYPE.JOIN_ROOM, roomName);
+        isHost = false;
+        //Check server reply
+        string tempstring;
+        DateTime b = DateTime.Now.AddSeconds(3);
+        do
+        {
+            DateTime a = DateTime.Now;
+            tempstring = server.RecieveFromQueue();
+            Debug.Log("JoinRoomSpectator: " + tempstring);
+            //Debug.Log(a + tempstring);
+            if (a > b)
+                break;
+        }
+        while (!tempstring.Contains(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString()));
+
+        if (tempstring.Contains(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString()))
+        {
+            isSpectator = inRoom = true;
+            tempstring = Unpack(tempstring);
+            Debug.Log(tempstring + "(In JoinRoomSpectator)");
+            this.gameObject.GetComponent<SceneChange>().ChangeScene(goToGameRoom);
+            return;
+        }
     }
 
     public string getOpponentName()
@@ -350,7 +438,7 @@ public class ServerConnection : MonoBehaviour {
     public void LeaveTheRoom()
     {
         //isHost = false;
-        inRoom = isHost = inGame = opponentIsReady = opponentInRoom = false;
+        isSpectator = inRoom = isHost = inGame = opponentIsReady = opponentInRoom = false;
         //inGame = false;
         //opponentIsReady = false;
         //opponentInRoom = false;

@@ -9,6 +9,8 @@ public class JoinRoomButton : MonoBehaviour {
     string serverServiceTagName = "ServerService";
     private ServerConnection serverService = null;
 
+    public bool isSpectator = false;
+
     // Use this for initialization
     void Start () {
         serverService = GameObject.FindGameObjectWithTag(serverServiceTagName).GetComponent<ServerConnection>();
@@ -25,6 +27,11 @@ public class JoinRoomButton : MonoBehaviour {
     {
         if (serverService == null)
             return;
-        serverService.JoinRoom(this.GetComponentInChildren<TextMeshProUGUI>().text);
+
+        if(!isSpectator)
+            serverService.JoinRoom(this.GetComponentInChildren<TextMeshProUGUI>().text);
+        else
+            serverService.JoinRoomSpectator(this.GetComponentInChildren<TextMeshProUGUI>().text);
+
     }
 }
