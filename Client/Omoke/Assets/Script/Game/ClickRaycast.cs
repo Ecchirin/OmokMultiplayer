@@ -15,9 +15,10 @@ public class ClickRaycast : MonoBehaviour {
 
     // Use this for initialization
     void Start () {
-        //Debug.Log("Click script has started");
         server = GameObject.FindGameObjectWithTag(serverServiceTagName).GetComponent<ServerConnection>();
-	}
+        if (server == null)
+            Debug.LogError("There is no server found in UpdateBoard.cs object name: " + this.gameObject.name);
+    }
 	
 	// Update is called once per frame
 	void Update () {
@@ -28,11 +29,11 @@ public class ClickRaycast : MonoBehaviour {
         }
         if (Input.GetMouseButtonDown(0))
         {
-            GetTileName();
+            SendTileName();
         }
     }
 
-    void GetTileName()
+    void SendTileName()
     {
         RaycastHit hit;
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -41,10 +42,6 @@ public class ClickRaycast : MonoBehaviour {
             {
                 Debug.Log("Tile selected: " + hit.transform.gameObject.name);
                 server.SetMoveOnBoard(int.Parse(hit.transform.gameObject.name));
-                //Destroy(hit.transform.gameObject);
-                //hit.transform.gameObject.GetComponent<BoxCollider>().enabled = false;
-                //hit.transform.gameObject.GetComponent<SpriteRenderer>().color = Color.red;
-                
             }
     }
 

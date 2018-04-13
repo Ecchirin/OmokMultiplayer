@@ -7,9 +7,9 @@ public class UpdateBoard : MonoBehaviour {
     [SerializeField]
     string serverServiceTagName = "ServerService";
     [SerializeField]
-    Color enemyTile;
+    Color enemyTile = Color.red;
     [SerializeField]
-    Color yourTile;
+    Color yourTile = Color.green;
 
     ServerConnection server = null;
 
@@ -18,10 +18,14 @@ public class UpdateBoard : MonoBehaviour {
     // Use this for initialization
     void Start () {
         server = GameObject.FindGameObjectWithTag(serverServiceTagName).GetComponent<ServerConnection>();
+        if (server == null)
+            Debug.LogError("There is no server found in UpdateBoard.cs object name: " + this.gameObject.name);
     }
 	
 	// Update is called once per frame
 	void Update () {
+        if (server == null)
+            return;
 		if(server.receiveNewCurrentGamePacket)
         {
             server.receiveNewCurrentGamePacket = false;

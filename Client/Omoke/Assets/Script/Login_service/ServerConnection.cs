@@ -83,6 +83,7 @@ public class ServerConnection : MonoBehaviour {
         {
             server.TranslatePacketIntoGameInformation(tempstring, ref currentGame);
             receiveNewCurrentGamePacket = true;
+            Debug.Log(currentGame.theWinner + " is the winner");
             Debug.Log("GOT A PACKET OF GAME DATA");
         }
         else if (tempstring.Contains(PACKET_TYPE.OPPONENT_DISCONNECTED.ToString()))
@@ -169,6 +170,7 @@ public class ServerConnection : MonoBehaviour {
         server.TranslatePacketIntoGameInformation(tempstring, ref currentGame);
         receiveNewCurrentGamePacket = true;
         Debug.Log("GOT A PACKET OF GAME DATA");
+        Debug.Log(currentGame.theWinner + " is the winner");
     }
 
     //Connect to server
