@@ -4,6 +4,9 @@ using UnityEngine;
 
 /// <summary>
 /// This class is to be put in the camera
+/// Find out what has been clicked
+/// get the name of the object
+/// if spectator turn this class off
 /// </summary>
 
 public class ClickRaycast : MonoBehaviour {
@@ -18,6 +21,8 @@ public class ClickRaycast : MonoBehaviour {
         server = GameObject.FindGameObjectWithTag(serverServiceTagName).GetComponent<ServerConnection>();
         if (server == null)
             Debug.LogError("There is no server found in UpdateBoard.cs object name: " + this.gameObject.name);
+        if (server.isSpectator)
+            this.enabled = false;
     }
 	
 	// Update is called once per frame

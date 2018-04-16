@@ -48,7 +48,6 @@ public class Spectate_RefreshList : MonoBehaviour {
         for (int i = 0; i < strArray.Length; ++i)
         {
             GameObject newObject = Instantiate(exampleRoomButton, contentView.transform);
-            //newObject.transform.parent = contentView.transform;
             newObject.GetComponentInChildren<TextMeshProUGUI>().text = strArray[i];
             newObject.GetComponent<JoinRoomButton>().isSpectator = true;
         }

@@ -20,6 +20,7 @@ public class ServerConnection : MonoBehaviour {
 
     public TextDisplay showText = null;
 
+    //Room swap
     [SerializeField]
     string lostConnectScene = "Server Disconnect";
     [SerializeField]
@@ -29,15 +30,21 @@ public class ServerConnection : MonoBehaviour {
     public string userName = "";
     public string opponentName = "";
 
+    //Room
     public bool inRoom = false;
     public bool inGame = false;
     public bool opponentInRoom = false;
     public bool opponentIsReady = false;
     public bool isHost = false;
+    //Spectator
     public bool isSpectator = false;
+    string firstPlayer = "";
+    string secondPlayer = "";
 
+    //Connection to server
     ConnectionClass server = null;
 
+    //Game package
     public bool receiveNewCurrentGamePacket = false;
     CurrentGameInfo currentGame /*= new CurrentGameInfo()*/;
 
@@ -399,6 +406,7 @@ public class ServerConnection : MonoBehaviour {
         //Debug.Log(tempstring + "(In JoinRoom)");
     }
 
+    //Joining room as spectator
     public void JoinRoomSpectator(string roomName)
     {
         //if (roomName == "")
@@ -435,13 +443,10 @@ public class ServerConnection : MonoBehaviour {
         return opponentName;
     }
 
+    //When leaving room reset all booleans
     public void LeaveTheRoom()
     {
-        //isHost = false;
         isSpectator = inRoom = isHost = inGame = opponentIsReady = opponentInRoom = false;
-        //inGame = false;
-        //opponentIsReady = false;
-        //opponentInRoom = false;
         server.SendMessage(PACKET_TYPE.LEAVE_ROOM, "I'm Leaving the room");
     }
 
