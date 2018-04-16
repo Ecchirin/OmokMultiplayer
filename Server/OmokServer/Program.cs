@@ -31,12 +31,70 @@ namespace OmokServer
 
         //Player Data
         public OngoingGame thePlayers;
+        int theWinner = 0;
+
+        //List of spectators
+        List<ConnectionThread> listOfSpectators = new List<ConnectionThread>();
+
+        public void AddNewSpectator(ConnectionThread newSpectator)
+        {
+            listOfSpectators.Add(newSpectator);
+        }
 
         public GameInformation(ConnectionThread theHost, ConnectionThread theOpponent)
         {
             thePlayers = new OngoingGame(theHost, theOpponent);
             GenerateEmptyMap();
             InitPlayers();
+        }
+
+        int CheckPlacementOfMap(int x, int y)
+        {
+            int theArrayIndex = ConnectionClass.ConvertXYPositionToIndex(x, y);
+            if (theArrayIndex < 0 || theArrayIndex >= 225)
+                return 5;
+
+            return mapData[theArrayIndex];
+        }
+
+        bool CheckIfWin(int arrayIndex)
+        {
+            int directionalCheck, forwardPlacements, backwardPlacements, checkX, checkY;
+            int x, y;
+            x = y = 0;
+
+            int thePlacementIndex = mapData[arrayIndex];
+
+            ConnectionClass.ConvertArrayPositionToXY(arrayIndex, out x, out y);
+
+            for (directionalCheck = 0; directionalCheck < 4; ++directionalCheck)
+            {
+                forwardPlacements = backwardPlacements = 0;
+                for (checkX = x + ThreadedTCPServer.DirectionalCheckX[directionalCheck],
+                     checkY = y + ThreadedTCPServer.DirectionalCheckY[directionalCheck];
+                     CheckPlacementOfMap(checkX, checkY) == thePlacementIndex;
+                     checkX += ThreadedTCPServer.DirectionalCheckX[directionalCheck],
+                     checkY += ThreadedTCPServer.DirectionalCheckY[directionalCheck])
+                    forwardPlacements++;
+
+                for (checkX = x - ThreadedTCPServer.DirectionalCheckX[directionalCheck],
+                     checkY = y - ThreadedTCPServer.DirectionalCheckY[directionalCheck];
+                     CheckPlacementOfMap(checkX, checkY) == thePlacementIndex;
+                     checkX -= ThreadedTCPServer.DirectionalCheckX[directionalCheck],
+                     checkY -= ThreadedTCPServer.DirectionalCheckY[directionalCheck])
+                    backwardPlacements++;
+
+                //Now check if there were 4 or more placements which matches the current placement
+                //Return once there is a win. No need check further.
+                if (forwardPlacements + backwardPlacements >= 4)
+                {
+                    theWinner = thePlacementIndex;
+                    return true;
+                }
+            }
+
+            //If for loop completed and did not return. means no winner
+            return false;
         }
 
         void InitPlayers()
@@ -47,13 +105,14 @@ namespace OmokServer
                 thePlayers.hostIndex = 1;
                 thePlayers.opponentIndex = 2;
                 thePlayers.hostTurn = true;
+                thePlayers.opponentTurn = false;
 
                 byte[] data = new byte[1024];
                 data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_RAW_GAME_INFO.ToString() + ":" +
                     /* Map Data */
                     string.Join(",", GetMapData()) + ":" +
                     /* Whos Turn */
-                    "1" + ":" +
+                    (thePlayers.hostTurn ? "1" : "0") + ":" +
                     /* index num */
                     "1" + ":" +
                     /* Winner */
@@ -61,6 +120,7 @@ namespace OmokServer
                 do
                 {
                     thePlayers.theHost.ns.Write(data, 0, data.Length);
+                    Console.WriteLine("HOST TURN IS FIRST SENT");
                 }
                 while (!thePlayers.theHost.ns.CanWrite);
 
@@ -69,7 +129,7 @@ namespace OmokServer
                      /* Map Data */
                      string.Join(",", GetMapData()) + ":" +
                      /* Whos Turn 1 or 0 */
-                     "0" + ":" +
+                     (thePlayers.opponentTurn ? "1" : "0") + ":" +
                      /* index num 1 or 2 */
                      "2" + ":" +
                      /* Winner 0 = nobody, 1 = p1, 2 = p2 */
@@ -77,6 +137,7 @@ namespace OmokServer
                 do
                 {
                     thePlayers.theOpponent.ns.Write(data, 0, data.Length);
+                    Console.WriteLine("OPPO TURN IS 2nd SENT");
                 }
                 while (!thePlayers.theOpponent.ns.CanWrite);
             }
@@ -85,13 +146,13 @@ namespace OmokServer
                 thePlayers.hostIndex = 2;
                 thePlayers.opponentIndex = 1;
                 thePlayers.opponentTurn = true;
-
+                thePlayers.hostTurn = false;
                 byte[] data = new byte[1024];
                 data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_RAW_GAME_INFO.ToString() + ":" +
                      /* Map Data */
                      string.Join(",", GetMapData()) + ":" +
                      /* Whos Turn 1 or 0 */
-                     "0" + ":" +
+                     (thePlayers.hostTurn ? "1" : "0") + ":" +
                      /* index num 1 or 2 */
                      "2" + ":" +
                      /* Winner 0 = nobody, 1 = p1, 2 = p2 */
@@ -99,6 +160,7 @@ namespace OmokServer
                 do
                 {
                     thePlayers.theHost.ns.Write(data, 0, data.Length);
+                    Console.WriteLine("HOST TURN IS 2nd SENT");
                 }
                 while (!thePlayers.theHost.ns.CanWrite);
 
@@ -107,7 +169,7 @@ namespace OmokServer
                     /* Map Data */
                     string.Join(",", GetMapData()) + ":" +
                     /* Whos Turn 1 or 0 */
-                    "1" + ":" +
+                    (thePlayers.opponentTurn ? "1" : "0") + ":" +
                     /* index num 1 or 2 */
                     "1" + ":" +
                     /* Winner 0 = nobody, 1 = p1, 2 = p2 */
@@ -115,37 +177,103 @@ namespace OmokServer
                 do
                 {
                     thePlayers.theOpponent.ns.Write(data, 0, data.Length);
+                    Console.WriteLine("OPPO TURN IS 1st SENT");
                 }
                 while (!thePlayers.theOpponent.ns.CanWrite);
             }
         }
 
+        public void SendTurnToSpectators(byte[] data)
+        {
+            foreach (ConnectionThread iter in listOfSpectators)
+            {
+                do
+                {
+                    iter.ns.Write(data, 0, data.Length);
+                }
+                while (!iter.ns.CanWrite);
+            }
+        }
+
         public void SendTurnInfo(int placementIndex)
         {
+            bool successPlacement = false;
+            byte[] data = new byte[1024];
+
             Console.WriteLine("Current turn is " + (thePlayers.hostTurn ? "the Host." : "the Opponent"));
             if (thePlayers.hostTurn)
             {
-                SetPlacement(placementIndex, thePlayers.hostIndex);
+                successPlacement = SetPlacement(placementIndex, thePlayers.hostIndex);
             }
             else if (thePlayers.opponentTurn)
             {
-                SetPlacement(placementIndex, thePlayers.opponentIndex);
+                successPlacement = SetPlacement(placementIndex, thePlayers.opponentIndex);
             }
+
+            if (!successPlacement)
+            {
+                //return same data cause invalid move. Client should check this before sending it to me. but safety net is best
+                //Send to host first
+                data = new byte[1024];
+                data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_RAW_GAME_INFO.ToString() + ":" +
+                    /* Map Data */
+                    string.Join(",", GetMapData()) + ":" +
+                    /* Whos Turn */
+                    (thePlayers.hostTurn ? "1" : "0") + ":" +
+                    /* index num */
+                    thePlayers.hostIndex.ToString() + ":" +
+                    /* Winner */
+                    theWinner);
+                do
+                {
+                    thePlayers.theHost.ns.Write(data, 0, data.Length);
+                }
+                while (!thePlayers.theHost.ns.CanWrite);
+
+                //Send to opponent
+                data = new byte[1024];
+                data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_RAW_GAME_INFO.ToString() + ":" +
+                     /* Map Data */
+                     string.Join(",", GetMapData()) + ":" +
+                     /* Whos Turn 1 or 0 */
+                     (thePlayers.opponentTurn ? "1" : "0") + ":" +
+                     /* index num 1 or 2 */
+                     thePlayers.opponentIndex.ToString() + ":" +
+                     /* Winner 0 = nobody, 1 = p1, 2 = p2 */
+                     theWinner);
+                do
+                {
+                    thePlayers.theOpponent.ns.Write(data, 0, data.Length);
+                }
+                while (!thePlayers.theOpponent.ns.CanWrite);
+
+                Console.WriteLine("Invalid move on board, please try again");
+
+                //terminate here cause invalid move.
+                return;
+            }
+
+            //Check if win
+            CheckIfWin(placementIndex);
 
             thePlayers.hostTurn = !thePlayers.hostTurn;
             thePlayers.opponentTurn = !thePlayers.opponentTurn;
 
             //Send to host first
-            byte[] data = new byte[1024];
+            data = new byte[1024];
             data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_RAW_GAME_INFO.ToString() + ":" +
                 /* Map Data */
                 string.Join(",", GetMapData()) + ":" +
                 /* Whos Turn */
-                (thePlayers.hostTurn ? thePlayers.hostIndex.ToString() : thePlayers.opponentIndex.ToString()) + ":" +
+                (thePlayers.hostTurn ? "1" : "0") + ":" +
                 /* index num */
                 thePlayers.hostIndex.ToString() + ":" +
                 /* Winner */
-                "0");
+                theWinner);
+
+            if (thePlayers.hostIndex == 1)
+                SendTurnToSpectators(data);
+
             do
             {
                 thePlayers.theHost.ns.Write(data, 0, data.Length);
@@ -158,17 +286,20 @@ namespace OmokServer
                  /* Map Data */
                  string.Join(",", GetMapData()) + ":" +
                  /* Whos Turn 1 or 0 */
-                 (thePlayers.opponentTurn ? thePlayers.opponentIndex.ToString() : thePlayers.hostIndex.ToString()) + ":" +
+                 (thePlayers.opponentTurn ? "1" : "0") + ":" +
                  /* index num 1 or 2 */
                  thePlayers.opponentIndex.ToString() + ":" +
                  /* Winner 0 = nobody, 1 = p1, 2 = p2 */
-                 "0");
+                 theWinner);
+
+            if (thePlayers.opponentIndex == 1)
+                SendTurnToSpectators(data);
+
             do
             {
                 thePlayers.theOpponent.ns.Write(data, 0, data.Length);
             }
             while (!thePlayers.theOpponent.ns.CanWrite);
-
             Console.WriteLine("New turn is " + (thePlayers.hostTurn ? "the Host." : "the Opponent"));
 
         }
@@ -182,9 +313,15 @@ namespace OmokServer
             }
         }
 
-        public void SetPlacement(int index, int playerIndex)
+        public bool SetPlacement(int index, int playerIndex)
         {
-            mapData[index] = playerIndex;
+            if (mapData[index] == 0)
+            {
+                mapData[index] = playerIndex;
+                return true;
+            }
+
+            return false;
         }
 
         public int[] GetMapData()
@@ -241,7 +378,7 @@ namespace OmokServer
             
             string welcome = "Welcome to my test server!";
             data = Encoding.ASCII.GetBytes(welcome);
-            client.NoDelay = true;
+            //client.NoDelay = true;
 
             ns.Write(data, 0, data.Length);
             //ThreadedTCPServer.AddNewConnectedClient(this);
@@ -316,12 +453,40 @@ namespace OmokServer
                             {
                                 isReady = false;
                                 data = Encoding.ASCII.GetBytes(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString() + ":" + targetName);
-                                if (ns.CanWrite)
+                                do
                                 {
                                     ns.Write(data, 0, data.Length);
                                     Console.WriteLine("Sent to joiner!!");
                                 }
+                                while (!ns.CanWrite);
+                                //if (ns.CanWrite)
+                                //{
+                                //    ns.Write(data, 0, data.Length);
+                                //    Console.WriteLine("Sent to joiner!!");
+                                //}
                                 ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.JOIN_ROOM_SUCCESS);
+                            }
+                            else
+                            {
+                                data = Encoding.ASCII.GetBytes(PACKET_TYPE.JOIN_ROOM_FAILURE.ToString() + ":" + "Failed to join room.");
+                                ns.Write(data, 0, data.Length);
+                            }
+                        }
+                        else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.JOIN_ROOM_SPECTATE.ToString()))
+                        {
+                            data = new byte[1024];
+                            string targetName = fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":") + 1);
+
+                            if (ThreadedTCPServer.JoinSpectateRoom(targetName, this))
+                            {
+                                isReady = false;
+                                data = Encoding.ASCII.GetBytes(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString() + ":" + ThreadedTCPServer.GetIndexPlacementOfPlayers(targetName));
+                                do
+                                {
+                                    ns.Write(data, 0, data.Length);
+                                    Console.WriteLine("Sent to joiner!!");
+                                }
+                                while (!ns.CanWrite);
                             }
                             else
                             {
@@ -353,6 +518,12 @@ namespace OmokServer
                             data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_ROOMS_TO_JOIN.ToString() + ":" + ThreadedTCPServer.GetHostedRoomList());
                             ns.Write(data, 0, data.Length);
                         }
+                        else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.GET_ROOMS_TO_SPECTATE.ToString()))
+                        {
+                            data = new byte[1024];
+                            data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_ROOMS_TO_SPECTATE.ToString() + ":" + ThreadedTCPServer.GetSpectatorRooms());
+                            ns.Write(data, 0, data.Length);
+                        }
                         else
                         {
                             data = new byte[1024];
@@ -360,13 +531,18 @@ namespace OmokServer
                             ns.Write(data, 0, data.Length);
                         }
                     }
-                    else
+                    else if (inGame)
                     {
                         if (fullPacketMessage.ToString().Contains(PACKET_TYPE.SET_MY_MOVE.ToString()))
                         {
+                            Console.WriteLine("Got your move packet!");
                             int placementIndex = Int32.Parse(fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":") + 1));
                             gameSession.SendTurnInfo(placementIndex);
                         }
+                    }
+                    else if (isSpectator)
+                    {
+
                     }
                     #endregion CheckWhatPacketIGet
 
@@ -404,6 +580,10 @@ namespace OmokServer
         static List<GameInformation> listOfOngoingGames = new List<GameInformation>();
         static int uniqueID = 0;
 
+        //Directional winning check
+        public static int[] DirectionalCheckX = new int[4] { 1, 0, 1, 1 };
+        public static int[] DirectionalCheckY = new int[4] { 0, 1, 1, -1 };
+
         /// <summary>
         /// Tools for converting XY Pos into Index
         /// </summary>
@@ -420,6 +600,25 @@ namespace OmokServer
         {
             positionX = index % 15;
             positionY = index / 15;
+        }
+
+        public static void GameHasEnded(OngoingGame theGameInfo)
+        {
+            foreach (GameInformation iter in listOfOngoingGames)
+            {
+                if (iter.thePlayers.theHost.clientName == theGameInfo.theHost.clientName && iter.thePlayers.theOpponent.clientName == theGameInfo.theOpponent.clientName)
+                {
+                    iter.thePlayers.theHost.inLobby = true;
+                    iter.thePlayers.theHost.inGame = false;
+                    iter.thePlayers.theHost.isReady = false;
+                    iter.thePlayers.theOpponent.inLobby = true;
+                    iter.thePlayers.theOpponent.inGame = false;
+                    iter.thePlayers.theOpponent.isReady = false;
+
+                    listOfOngoingGames.Remove(iter);
+                    break;
+                }
+            }
         }
 
         public static bool IsClientConnected(TcpClient theClient)
@@ -508,6 +707,7 @@ namespace OmokServer
                             {
                                 thePacketHeader = PACKET_TYPE.START_GAME_SUCCESS;
                                 listOfGamesWaiting.Remove(iter);
+                                iter.theHost.inGame = iter.theOpponent.inGame = true;
                                 iter.theHost.gameSession = iter.theOpponent.gameSession = ThreadedTCPServer.StartNewGame(iter.theHost, iter.theOpponent);
                                 theReceiver.isReady = false;
                                 theSender.isReady = false;
@@ -595,32 +795,51 @@ namespace OmokServer
                 else if (thePacketHeader == PACKET_TYPE.START_GAME_SUCCESS)
                 {
                     data = Encoding.ASCII.GetBytes(PACKET_TYPE.START_GAME_SUCCESS.ToString() + ":" + extraMessage);
-                    if (theSender.ns.CanWrite)
+                    do
                     {
-                        //Console.WriteLine(theReceiver.clientName);
                         theSender.ns.Write(data, 0, data.Length);
                         Console.WriteLine("Sent data to sender too");
                     }
+                    while (!theSender.ns.CanWrite);
+                    //if (theSender.ns.CanWrite)
+                    //{
+                    //    //Console.WriteLine(theReceiver.clientName);
+                    //    theSender.ns.Write(data, 0, data.Length);
+                    //    Console.WriteLine("Sent data to sender too");
+                    //}
                 }
                 else if (thePacketHeader == PACKET_TYPE.START_GAME_FAILURE)
                 {
                     data = Encoding.ASCII.GetBytes(PACKET_TYPE.START_GAME_FAILURE.ToString() + ":" + extraMessage);
-                    if (theSender.ns.CanWrite)
+                    do
                     {
-                        //Console.WriteLine(theReceiver.clientName);
                         theSender.ns.Write(data, 0, data.Length);
                         Console.WriteLine("Sent data to sender too");
                     }
+                    while (!theSender.ns.CanWrite);
+                    //if (theSender.ns.CanWrite)
+                    //{
+                    //    //Console.WriteLine(theReceiver.clientName);
+                    //    theSender.ns.Write(data, 0, data.Length);
+                    //    Console.WriteLine("Sent data to sender too");
+                    //}
                 }
 
                 //TcpClient tempClient = theReceiver.threadListener.AcceptTcpClient();
                 //NetworkStream ns = tempClient.GetStream();
-                if (theReceiver.ns.CanWrite)
+                do
                 {
-                    //Console.WriteLine(theReceiver.clientName);
                     theReceiver.ns.Write(data, 0, data.Length);
                     Console.WriteLine("Above Statement Success");
                 }
+                while (!theReceiver.ns.CanWrite);
+
+                //if (theReceiver.ns.CanWrite)
+                //{
+                //    //Console.WriteLine(theReceiver.clientName);
+                //    theReceiver.ns.Write(data, 0, data.Length);
+                //    Console.WriteLine("Above Statement Success");
+                //}
                 //ns.Close();
                 //tempClient.Close();
             }
@@ -648,6 +867,24 @@ namespace OmokServer
         {
             listOfConnections.Add(newConnection);
         }
+
+        public static string GetSpectatorRooms()
+        {
+            List<string> getNames = new List<string>();
+            bool hasGames = false;
+
+            foreach (GameInformation iter in listOfOngoingGames)
+            {
+                getNames.Add(iter.thePlayers.theHost.clientName);
+                hasGames = true;
+            }
+
+            if (hasGames)
+                return string.Join(",", getNames.ToArray());
+            else
+                return "No Games Found";
+        }
+
         public static string GetHostedRoomList()
         {
             List<string> getNames = new List<string>();
@@ -716,6 +953,41 @@ namespace OmokServer
             }
             return false;
         }
+
+        public static bool JoinSpectateRoom(string targetName, ConnectionThread joiningPlayer)
+        {
+            foreach (GameInformation iter in listOfOngoingGames)
+            {
+                if (iter.thePlayers.theHost.clientName == targetName)
+                {
+                    iter.AddNewSpectator(joiningPlayer);
+                    joiningPlayer.inLobby = false;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static string GetIndexPlacementOfPlayers(string targetName)
+        {
+            foreach (GameInformation iter in listOfOngoingGames)
+            {
+                if (iter.thePlayers.theHost.clientName == targetName)
+                {
+                    if (iter.thePlayers.hostIndex == 1)
+                    {
+                        return (iter.thePlayers.theHost.clientName + "," + iter.thePlayers.theOpponent.clientName);
+                    }
+                    else if (iter.thePlayers.opponentIndex == 1)
+                    {
+                        return (iter.thePlayers.theOpponent.clientName + "," + iter.thePlayers.theHost.clientName);
+                    }   
+                }
+            }
+
+            return "Not Found";
+        }
+
 
         public static GameInformation StartNewGame(ConnectionThread theHost, ConnectionThread theOpponent)
         {

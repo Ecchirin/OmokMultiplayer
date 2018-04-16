@@ -19,6 +19,7 @@ namespace TCPServer
         ROOM_CREATED_FAILURE,
 
         JOIN_ROOM,
+        JOIN_ROOM_SPECTATE,
         JOIN_ROOM_SUCCESS,
         JOIN_ROOM_FAILURE,
 
@@ -66,7 +67,7 @@ namespace TCPServer
         /// Tools for converting XY Pos into Index
         /// </summary>
         /// <returns>Index position of array</returns>
-        public static int ConvertXYPosition(int positionX, int positionY)
+        public static int ConvertXYPositionToIndex(int positionX, int positionY)
         {
             return positionY * 15 + positionX;
         }
@@ -74,7 +75,7 @@ namespace TCPServer
         /// <summary>
         /// Tools for converting index into position X and Y
         /// </summary>
-        public static void ConvertArrayPosition(int index, out int positionX, out int positionY)
+        public static void ConvertArrayPositionToXY(int index, out int positionX, out int positionY)
         {
             positionX = index % 15;
             positionY = index / 15;
