@@ -61,6 +61,7 @@ public class DropDownMenu_Bot_Toggle : MonoBehaviour {
                 {
                     readyBtn.SetActive(false);
                     cancelBtn.SetActive(false);
+                    //string name = dropDownMenu.options[1].text;
                 }
                 if (server != null)
                     server.RoomSetReady(true);

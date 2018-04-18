@@ -23,3 +23,6 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scene/Game Room.unity
     guid: c358c36e592e5b54d8b0b66083eec6ae
+  - enabled: 1
+    path: Assets/Scene/Spectate menu.unity
+    guid: fb0c4fb0f75da4b4db24b41d67be3986

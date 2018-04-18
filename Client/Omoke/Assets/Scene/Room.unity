@@ -1768,7 +1768,7 @@ MonoBehaviour:
     m_Options:
     - m_Text: Human
       m_Image: {fileID: 0}
-    - m_Text: Bot (AI)(Hellen)
+    - m_Text: Bot (AI)(Calvert)
       m_Image: {fileID: 0}
     - m_Text: Bot (AI)(Mi Hye)
       m_Image: {fileID: 0}
@@ -2469,6 +2469,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   inGameName: IGN
+  serverServiceTagName: ServerService
 --- !u!1 &1147928767
 GameObject:
   m_ObjectHideFlags: 0

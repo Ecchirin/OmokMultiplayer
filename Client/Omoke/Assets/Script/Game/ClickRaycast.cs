@@ -27,10 +27,11 @@ public class ClickRaycast : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-        if(server == null)
+        if(server == null || server.GetWinner() != 0)
         {
             Debug.Log("Error cannot connect to server");
-            return;
+            this.enabled = false;
+            return; 
         }
         if (Input.GetMouseButtonDown(0) && server.GetMyTurn())
         {

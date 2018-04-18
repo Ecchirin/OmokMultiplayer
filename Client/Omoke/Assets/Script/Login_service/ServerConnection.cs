@@ -412,7 +412,7 @@ public class ServerConnection : MonoBehaviour {
         //if (roomName == "")
         //    return;
         //opponentIsReady = false;
-        server.SendMessage(PACKET_TYPE.JOIN_ROOM, roomName);
+        server.SendMessage(PACKET_TYPE.JOIN_ROOM_SPECTATE, roomName);
         isHost = false;
         //Check server reply
         string tempstring;
@@ -433,6 +433,9 @@ public class ServerConnection : MonoBehaviour {
             isSpectator = inRoom = true;
             tempstring = Unpack(tempstring);
             Debug.Log(tempstring + "(In JoinRoomSpectator)");
+            string[] strArray = tempstring.Split(',');
+            firstPlayer = strArray[0];
+            secondPlayer = strArray[1];
             this.gameObject.GetComponent<SceneChange>().ChangeScene(goToGameRoom);
             return;
         }
@@ -441,6 +444,17 @@ public class ServerConnection : MonoBehaviour {
     public string getOpponentName()
     {
         return opponentName;
+    }
+
+    //Get player one and two names
+    public string GetPlayerOne()
+    {
+        return firstPlayer;
+    }
+
+    public string GetPlayerTwo()
+    {
+        return secondPlayer;
     }
 
     //When leaving room reset all booleans
@@ -467,6 +481,12 @@ public class ServerConnection : MonoBehaviour {
             return;
         }
         Debug.Log("Waiting for host to start");
+    }
+
+    //Return to login will need to destroy this object
+    public void ServerDestroy()
+    {
+        Destroy(this.gameObject);
     }
 
     //When gameobject detect application has been closed this will close the connection to the server (prevent server crash)

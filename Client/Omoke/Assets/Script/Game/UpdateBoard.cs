@@ -12,6 +12,8 @@ public class UpdateBoard : MonoBehaviour {
     Color yourTile = Color.green;
 
     ServerConnection server = null;
+    [SerializeField]
+    bool isSpectator = false;
 
     //private GameObject[] childObjectBoard;
 
@@ -20,6 +22,8 @@ public class UpdateBoard : MonoBehaviour {
         server = GameObject.FindGameObjectWithTag(serverServiceTagName).GetComponent<ServerConnection>();
         if (server == null)
             Debug.LogError("There is no server found in UpdateBoard.cs object name: " + this.gameObject.name);
+
+        isSpectator = server.isSpectator;
     }
 	
 	// Update is called once per frame
@@ -39,10 +43,21 @@ public class UpdateBoard : MonoBehaviour {
         int myIndexNumber = server.MyNumber();
         foreach (Transform tile in transform)
         {
-            if(newMapData[int.Parse(tile.gameObject.name)] > 0)
+            if(!isSpectator)
             {
-                tile.gameObject.GetComponent<BoxCollider>().enabled = false;
-                tile.gameObject.GetComponent<SpriteRenderer>().color = (newMapData[int.Parse(tile.gameObject.name)] == myIndexNumber ? yourTile : enemyTile);
+                if (newMapData[int.Parse(tile.gameObject.name)] > 0)
+                {
+                    tile.gameObject.GetComponent<BoxCollider>().enabled = false;
+                    tile.gameObject.GetComponent<SpriteRenderer>().color = (newMapData[int.Parse(tile.gameObject.name)] == myIndexNumber ? yourTile : enemyTile);
+                }
+            }
+            else
+            {
+                if (newMapData[int.Parse(tile.gameObject.name)] > 0)
+                {
+                    tile.gameObject.GetComponent<BoxCollider>().enabled = false;
+                    tile.gameObject.GetComponent<SpriteRenderer>().color = (newMapData[int.Parse(tile.gameObject.name)] == 1 ? yourTile : enemyTile);
+                }
             }
         }
     }

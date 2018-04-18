@@ -41,7 +41,7 @@ public class Spectate_RefreshList : MonoBehaviour {
             return;
         }
         DestroyAllChild();
-        string players = serverService.GetRoomList();
+        string players = serverService.GetSpectateRoomList();
         string[] strArray = players.Split(',');
         Debug.Log(strArray.Length);
         Debug.Log(players);
