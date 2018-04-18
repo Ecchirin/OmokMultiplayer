@@ -10,6 +10,241 @@ using System.IO;
 
 namespace TCPServer
 {
+    public static class ForbiddenPointFinder
+    {
+        //Directional winning check
+        public static int[] DirectionalCheckX = new int[4] { 1, 0, 1, 1 };
+        public static int[] DirectionalCheckY = new int[4] { 0, 1, 1, -1 };
+
+        static int CheckPlacementOfMap(int x, int y, int[] mapData)
+        {
+            int theArrayIndex = ConnectionClass.ConvertXYPositionToIndex(x, y);
+            if (theArrayIndex < 0 || theArrayIndex >= 225)
+                return 5;
+
+            return mapData[theArrayIndex];
+        }
+
+        public static bool IsFive(int x, int y, int[] mapData, int colorIndex)
+        {
+            if (x < 0 || x >= 15 || y < 0 || y >= 15)
+                return false;
+
+            int directionalCheck, forwardPlacements, backwardPlacements, checkX, checkY;
+            int thePlacementIndex = mapData[ConnectionClass.ConvertXYPositionToIndex(x, y)];
+            int prevIndex = thePlacementIndex;
+
+            if (thePlacementIndex == 0)
+            {
+                mapData[ConnectionClass.ConvertXYPositionToIndex(x, y)] = colorIndex;
+                thePlacementIndex = colorIndex;
+            }
+
+            for (directionalCheck = 0; directionalCheck < 4; ++directionalCheck)
+            {
+                forwardPlacements = backwardPlacements = 0;
+                for (checkX = x + DirectionalCheckX[directionalCheck],
+                     checkY = y + DirectionalCheckY[directionalCheck];
+                     CheckPlacementOfMap(checkX, checkY, mapData) == thePlacementIndex;
+                     checkX += DirectionalCheckX[directionalCheck],
+                     checkY += DirectionalCheckY[directionalCheck])
+                    forwardPlacements++;
+
+                for (checkX = x - DirectionalCheckX[directionalCheck],
+                     checkY = y - DirectionalCheckY[directionalCheck];
+                     CheckPlacementOfMap(checkX, checkY, mapData) == thePlacementIndex;
+                     checkX -= DirectionalCheckX[directionalCheck],
+                     checkY -= DirectionalCheckY[directionalCheck])
+                    backwardPlacements++;
+
+                if (forwardPlacements + backwardPlacements == 4)
+                {
+                    if (prevIndex == 0)
+                        mapData[ConnectionClass.ConvertXYPositionToIndex(x, y)] = 0;
+                    return true;
+                }
+            }
+
+            if (prevIndex == 0)
+                mapData[ConnectionClass.ConvertXYPositionToIndex(x, y)] = 0;
+            return false;
+        }
+
+        public static bool IsOverline(int x, int y, int[] mapData)
+        {
+            int directionalCheck, forwardPlacements, backwardPlacements, checkX, checkY;
+            int thePlacementIndex = mapData[ConnectionClass.ConvertXYPositionToIndex(x, y)];
+
+            for (directionalCheck = 0; directionalCheck < 4; ++directionalCheck)
+            {
+                forwardPlacements = backwardPlacements = 0;
+                for (checkX = x + DirectionalCheckX[directionalCheck],
+                     checkY = y + DirectionalCheckY[directionalCheck];
+                     CheckPlacementOfMap(checkX, checkY, mapData) == thePlacementIndex;
+                     checkX += DirectionalCheckX[directionalCheck],
+                     checkY += DirectionalCheckY[directionalCheck])
+                    forwardPlacements++;
+
+                for (checkX = x - DirectionalCheckX[directionalCheck],
+                     checkY = y - DirectionalCheckY[directionalCheck];
+                     CheckPlacementOfMap(checkX, checkY, mapData) == thePlacementIndex;
+                     checkX -= DirectionalCheckX[directionalCheck],
+                     checkY -= DirectionalCheckY[directionalCheck])
+                    backwardPlacements++;
+
+                if (forwardPlacements + backwardPlacements > 4)
+                    return true;
+            }
+
+            return false;
+        }
+
+        public static bool IsFour(int x, int y, int[] mapData, int colorIndex)
+        {
+            if (x < 0 || x >= 15 || y < 0 || y >= 15)
+                return false;
+
+            int directionalCheck, forwardPlacements, backwardPlacements, checkX, checkY;
+            int thePlacementIndex = mapData[ConnectionClass.ConvertXYPositionToIndex(x, y)];
+            int prevIndex = thePlacementIndex;
+
+            if (thePlacementIndex == 0)
+            {
+                mapData[ConnectionClass.ConvertXYPositionToIndex(x, y)] = colorIndex;
+                thePlacementIndex = colorIndex;
+            }
+
+            for (directionalCheck = 0; directionalCheck < 4; ++directionalCheck)
+            {
+                forwardPlacements = backwardPlacements = 0;
+                for (checkX = x + DirectionalCheckX[directionalCheck],
+                     checkY = y + DirectionalCheckY[directionalCheck];
+                     CheckPlacementOfMap(checkX, checkY, mapData) == thePlacementIndex;
+                     checkX += DirectionalCheckX[directionalCheck],
+                     checkY += DirectionalCheckY[directionalCheck])
+                    forwardPlacements++;
+
+                for (checkX = x - DirectionalCheckX[directionalCheck],
+                     checkY = y - DirectionalCheckY[directionalCheck];
+                     CheckPlacementOfMap(checkX, checkY, mapData) == thePlacementIndex;
+                     checkX -= DirectionalCheckX[directionalCheck],
+                     checkY -= DirectionalCheckY[directionalCheck])
+                    backwardPlacements++;
+                
+                if (forwardPlacements + backwardPlacements == 3)
+                {
+                    if (prevIndex == 0)
+                        mapData[ConnectionClass.ConvertXYPositionToIndex(x, y)] = 0;
+                    return true;
+                }
+            }
+
+            if (prevIndex == 0)
+                mapData[ConnectionClass.ConvertXYPositionToIndex(x, y)] = 0;
+            return false;
+        }
+
+        static bool RecursiveCheckForFive(int[] mapData, int x, int y, int dirX, int dirY, int colorIndex)
+        {
+            if (x < 0 || x >= 15 || y < 0 || y >= 15)
+                return false;
+
+            if (CheckPlacementOfMap(x, y, mapData) == (colorIndex == 1 ? 2 : 1))
+                return false;
+
+            if (CheckPlacementOfMap(x, y, mapData) == 0 && IsFive(x, y, mapData, colorIndex))
+                return true;
+
+            else if (CheckPlacementOfMap(x, y, mapData) == 0 && !IsFive(x, y, mapData, colorIndex))
+                return false;
+
+            return RecursiveCheckForFive(mapData, x + dirX, y + dirY, dirX, dirY, colorIndex);
+        }
+
+        static bool RecursiveCheckForFour(int[] mapData, int x, int y, int dirX, int dirY, int colorIndex)
+        {
+            if (x < 0 || x >= 15 || y < 0 || y >= 15)
+                return false;
+
+            if (CheckPlacementOfMap(x, y, mapData) == (colorIndex == 1 ? 2 : 1))
+                return false;
+
+            if (CheckPlacementOfMap(x, y, mapData) == 0 && IsFour(x, y, mapData, colorIndex))
+                return true;
+
+            else if (CheckPlacementOfMap(x, y, mapData) == 0 && !IsFour(x, y, mapData, colorIndex))
+                return false;
+
+            return RecursiveCheckForFour(mapData, x + dirX, y + dirY, dirX, dirY, colorIndex);
+        }
+
+        public static int IsOpenFour(int x, int y, int[] mapData)
+        {
+            if (x < 0 || x >= 15 || y < 0 || y >= 15)
+                return 0;
+
+            int thePlacementIndex = mapData[ConnectionClass.ConvertXYPositionToIndex(x, y)];
+
+            int numberOfOpenFours = 0;
+
+            //check forward horizontal
+            if (RecursiveCheckForFive(mapData, x, y, 1, 0, thePlacementIndex) && RecursiveCheckForFive(mapData, x, y, -1, 0, thePlacementIndex))
+                numberOfOpenFours++;
+
+            if (RecursiveCheckForFive(mapData, x, y, 0, 1, thePlacementIndex) && RecursiveCheckForFive(mapData, x, y, 0, -1, thePlacementIndex))
+                numberOfOpenFours++;
+
+            if (RecursiveCheckForFive(mapData, x, y, 1, 1, thePlacementIndex) && RecursiveCheckForFive(mapData, x, y, -1, -1, thePlacementIndex))
+                numberOfOpenFours++;
+
+            if (RecursiveCheckForFive(mapData, x, y, -1, 1, thePlacementIndex) && RecursiveCheckForFive(mapData, x, y, 1, -1, thePlacementIndex))
+                numberOfOpenFours++;
+
+            return numberOfOpenFours;
+        }
+
+        public static bool IsDoubleFour(int x, int y, int[] mapData)
+        {
+            if (IsOpenFour(x, y, mapData) >= 2)
+                return true;
+
+            return false;
+        }
+
+        public static int IsOpenThree(int x, int y, int[] mapData)
+        {
+            if (x < 0 || x >= 15 || y < 0 || y >= 15)
+                return 0;
+
+            int thePlacementIndex = mapData[ConnectionClass.ConvertXYPositionToIndex(x, y)];
+
+            int numberOfOpenThrees = 0;
+
+            //check forward horizontal
+            if (RecursiveCheckForFour(mapData, x, y, 1, 0, thePlacementIndex) && RecursiveCheckForFour(mapData, x, y, -1, 0, thePlacementIndex))
+                numberOfOpenThrees++;
+
+            if (RecursiveCheckForFour(mapData, x, y, 0, 1, thePlacementIndex) && RecursiveCheckForFour(mapData, x, y, 0, -1, thePlacementIndex))
+                numberOfOpenThrees++;
+
+            if (RecursiveCheckForFour(mapData, x, y, 1, 1, thePlacementIndex) && RecursiveCheckForFour(mapData, x, y, -1, -1, thePlacementIndex))
+                numberOfOpenThrees++;
+
+            if (RecursiveCheckForFour(mapData, x, y, -1, 1, thePlacementIndex) && RecursiveCheckForFour(mapData, x, y, 1, -1, thePlacementIndex))
+                numberOfOpenThrees++;
+
+            return numberOfOpenThrees;
+        }
+
+        public static bool IsDoubleThree(int x, int y, int[] mapData)
+        {
+            if (IsOpenThree(x, y, mapData) >= 2)
+                return true;
+
+            return false;
+        }
+    }
+
     public enum PACKET_TYPE
     {
         ASSIGN_NAME_PACKET = 0,

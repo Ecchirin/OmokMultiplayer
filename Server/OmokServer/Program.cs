@@ -33,6 +33,8 @@ namespace OmokServer
         public OngoingGame thePlayers;
         int theWinner = 0;
 
+        Queue<int> getList = new Queue<int>();
+
         //List of spectators
         List<ConnectionThread> listOfSpectators = new List<ConnectionThread>();
 
@@ -46,6 +48,7 @@ namespace OmokServer
             thePlayers = new OngoingGame(theHost, theOpponent);
             GenerateEmptyMap();
             InitPlayers();
+            Console.WriteLine("INITED");
         }
 
         int CheckPlacementOfMap(int x, int y)
@@ -57,43 +60,96 @@ namespace OmokServer
             return mapData[theArrayIndex];
         }
 
+        void GetAllBlackConnected(int x, int y)
+        {
+            RecursiveCheckForConnectedBlacks(x, y);
+        }
+
+        void RecursiveCheckForConnectedBlacks(int x, int y, int dirX = 0, int dirY = 0)
+        {
+            if (x < 0 || x >= 15 || y < 0 || y >= 15)
+                return;
+
+            x += dirX;
+            y += dirY;
+
+            if (CheckPlacementOfMap(x, y) == 1)
+            {
+                if (getList.Contains(ConnectionClass.ConvertXYPositionToIndex(x, y)))
+                    return;
+
+                getList.Enqueue(ConnectionClass.ConvertXYPositionToIndex(x, y));
+                Console.WriteLine("QUEUED SOMETHiNG");
+
+                RecursiveCheckForConnectedBlacks(x, y, 0, 1);
+                RecursiveCheckForConnectedBlacks(x, y, 1, 1);
+                RecursiveCheckForConnectedBlacks(x, y, 1, 0);
+                RecursiveCheckForConnectedBlacks(x, y, 1, -1);
+                RecursiveCheckForConnectedBlacks(x, y, 0, -1);
+                RecursiveCheckForConnectedBlacks(x, y, -1, -1);
+                RecursiveCheckForConnectedBlacks(x, y, -1, 0);
+                RecursiveCheckForConnectedBlacks(x, y, -1, 1);
+            }
+
+            return;
+        }
+
         bool CheckIfWin(int arrayIndex)
         {
-            int directionalCheck, forwardPlacements, backwardPlacements, checkX, checkY;
+            //test new code
+
             int x, y;
             x = y = 0;
-
-            int thePlacementIndex = mapData[arrayIndex];
-
             ConnectionClass.ConvertArrayPositionToXY(arrayIndex, out x, out y);
 
-            for (directionalCheck = 0; directionalCheck < 4; ++directionalCheck)
+
+            if (CheckPlacementOfMap(x, y) == 1)
             {
-                forwardPlacements = backwardPlacements = 0;
-                for (checkX = x + ThreadedTCPServer.DirectionalCheckX[directionalCheck],
-                     checkY = y + ThreadedTCPServer.DirectionalCheckY[directionalCheck];
-                     CheckPlacementOfMap(checkX, checkY) == thePlacementIndex;
-                     checkX += ThreadedTCPServer.DirectionalCheckX[directionalCheck],
-                     checkY += ThreadedTCPServer.DirectionalCheckY[directionalCheck])
-                    forwardPlacements++;
+                GetAllBlackConnected(x, y);
 
-                for (checkX = x - ThreadedTCPServer.DirectionalCheckX[directionalCheck],
-                     checkY = y - ThreadedTCPServer.DirectionalCheckY[directionalCheck];
-                     CheckPlacementOfMap(checkX, checkY) == thePlacementIndex;
-                     checkX -= ThreadedTCPServer.DirectionalCheckX[directionalCheck],
-                     checkY -= ThreadedTCPServer.DirectionalCheckY[directionalCheck])
-                    backwardPlacements++;
-
-                //Now check if there were 4 or more placements which matches the current placement
-                //Return once there is a win. No need check further.
-                if (forwardPlacements + backwardPlacements >= 4)
+                if (ForbiddenPointFinder.IsOverline(x, y, mapData))
                 {
-                    theWinner = thePlacementIndex;
+                    Console.WriteLine("Forbidden Move");
+                    theWinner = 2;
                     return true;
+                }
+
+                if (getList.Count > 0)
+                {
+                    int x1, y1;
+                    x1 = y1 = 0;
+
+                    while (getList.Count > 0)
+                    {
+                        ConnectionClass.ConvertArrayPositionToXY(getList.Dequeue(), out x1, out y1);
+                        Console.WriteLine("DEQUEUING LIST, X1 = " + x1 + " Y1 = " + y1);
+
+                        if (ForbiddenPointFinder.IsDoubleFour(x1, y1, mapData) || ForbiddenPointFinder.IsDoubleThree(x1, y1, mapData))
+                        {
+                            Console.WriteLine("Forbidden Move");
+                            theWinner = 2;
+                            return true;
+                        }
+                    }
+
+                }
+                else
+                {
+                    if (ForbiddenPointFinder.IsDoubleFour(x, y, mapData) || ForbiddenPointFinder.IsDoubleThree(x, y, mapData))
+                    {
+                        Console.WriteLine("Forbidden Move");
+                        theWinner = 2;
+                        return true;
+                    }
                 }
             }
 
-            //If for loop completed and did not return. means no winner
+            if (ForbiddenPointFinder.IsFive(x, y, mapData, CheckPlacementOfMap(x, y)))
+            {
+                Console.WriteLine("5 in a row found");
+                theWinner = CheckPlacementOfMap(x, y);
+                return true;
+            }
             return false;
         }
 
@@ -187,6 +243,8 @@ namespace OmokServer
         {
             foreach (ConnectionThread iter in listOfSpectators)
             {
+                if (iter == null)
+                    continue;
                 do
                 {
                     iter.ns.Write(data, 0, data.Length);
@@ -254,7 +312,8 @@ namespace OmokServer
             }
 
             //Check if win
-            CheckIfWin(placementIndex);
+            if (CheckIfWin(placementIndex))
+                ThreadedTCPServer.GameHasEnded(thePlayers);
 
             thePlayers.hostTurn = !thePlayers.hostTurn;
             thePlayers.opponentTurn = !thePlayers.opponentTurn;
@@ -423,127 +482,158 @@ namespace OmokServer
                     Console.WriteLine(fullPacketMessage.ToString());
 
                     #region CheckWhatPacketIGet
-                    if (!inGame)
+                    if (fullPacketMessage.ToString().Contains(PACKET_TYPE.GET_ALL_CONNECTED_USERS.ToString()))
                     {
-                        if (fullPacketMessage.ToString().Contains(PACKET_TYPE.GET_ALL_CONNECTED_USERS.ToString()))
-                        {
-                            data = new byte[1024];
-                            data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_ALL_CONNECTED_USERS.ToString() + ":" + ThreadedTCPServer.GetListOfConnectedUsers());
-                            Console.WriteLine(ThreadedTCPServer.GetListOfConnectedUsers());
-                            ns.Write(data, 0, data.Length);
-                        }
-                        else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.CREATE_NEW_ROOM.ToString()))
-                        {
-                            ThreadedTCPServer.CreateNewRoom(this);
-                        }
-                        else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.ASSIGN_NAME_PACKET.ToString()))
-                        {
-                            clientName = fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":") + 1) + ThreadedTCPServer.GiveUniqueID();
+                        data = new byte[1024];
+                        data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_ALL_CONNECTED_USERS.ToString() + ":" + ThreadedTCPServer.GetListOfConnectedUsers());
+                        Console.WriteLine(ThreadedTCPServer.GetListOfConnectedUsers());
+                        ns.Write(data, 0, data.Length);
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.CREATE_NEW_ROOM.ToString()))
+                    {
+                        Console.WriteLine("Creating new room");
+                        ThreadedTCPServer.CreateNewRoom(this);
+                        inLobby = false;
+                        isReady = false;
+                        inGame = false;
+                        isSpectator = false;
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.ASSIGN_NAME_PACKET.ToString()))
+                    {
+                        clientName = fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":") + 1) + ThreadedTCPServer.GiveUniqueID();
 
-                            data = new byte[1024];
-                            data = Encoding.ASCII.GetBytes(PACKET_TYPE.ASSIGN_NAME_PACKET.ToString() + ":" + clientName.ToString());
-                            ns.Write(data, 0, data.Length);
-                        }
-                        else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.JOIN_ROOM.ToString()))
-                        {
-                            data = new byte[1024];
-                            string targetName = fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":") + 1);
+                        data = new byte[1024];
+                        data = Encoding.ASCII.GetBytes(PACKET_TYPE.ASSIGN_NAME_PACKET.ToString() + ":" + clientName.ToString());
+                        ns.Write(data, 0, data.Length);
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.JOIN_ROOM_SPECTATE.ToString()))
+                    {
+                        data = new byte[1024];
+                        string targetName = fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":") + 1);
 
-                            if (ThreadedTCPServer.JoinRoom(targetName, this))
-                            {
-                                isReady = false;
-                                data = Encoding.ASCII.GetBytes(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString() + ":" + targetName);
-                                do
-                                {
-                                    ns.Write(data, 0, data.Length);
-                                    Console.WriteLine("Sent to joiner!!");
-                                }
-                                while (!ns.CanWrite);
-                                //if (ns.CanWrite)
-                                //{
-                                //    ns.Write(data, 0, data.Length);
-                                //    Console.WriteLine("Sent to joiner!!");
-                                //}
-                                ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.JOIN_ROOM_SUCCESS);
-                            }
-                            else
-                            {
-                                data = Encoding.ASCII.GetBytes(PACKET_TYPE.JOIN_ROOM_FAILURE.ToString() + ":" + "Failed to join room.");
-                                ns.Write(data, 0, data.Length);
-                            }
-                        }
-                        else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.JOIN_ROOM_SPECTATE.ToString()))
+                        if (ThreadedTCPServer.JoinSpectateRoom(targetName, this))
                         {
-                            data = new byte[1024];
-                            string targetName = fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":") + 1);
-
-                            if (ThreadedTCPServer.JoinSpectateRoom(targetName, this))
-                            {
-                                isReady = false;
-                                data = Encoding.ASCII.GetBytes(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString() + ":" + ThreadedTCPServer.GetIndexPlacementOfPlayers(targetName));
-                                do
-                                {
-                                    ns.Write(data, 0, data.Length);
-                                    Console.WriteLine("Sent to joiner!!");
-                                }
-                                while (!ns.CanWrite);
-                            }
-                            else
-                            {
-                                data = Encoding.ASCII.GetBytes(PACKET_TYPE.JOIN_ROOM_FAILURE.ToString() + ":" + "Failed to join room.");
-                                ns.Write(data, 0, data.Length);
-                            }
-                        }
-                        else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.LEAVE_ROOM.ToString()))
-                        {
-                            ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.LEAVE_ROOM);
-                        }
-                        else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.PLAYER_IS_READY.ToString()))
-                        {
-                            isReady = true;
-                            ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.PLAYER_IS_READY);
-                        }
-                        else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.PLAYER_UNREADY.ToString()))
-                        {
+                            inLobby = false;
                             isReady = false;
-                            ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.PLAYER_UNREADY);
-                        }
-                        else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.START_GAME.ToString()))
-                        {
-                            ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.START_GAME);
-                        }
-                        else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.GET_ROOMS_TO_JOIN.ToString()))
-                        {
-                            data = new byte[1024];
-                            data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_ROOMS_TO_JOIN.ToString() + ":" + ThreadedTCPServer.GetHostedRoomList());
-                            ns.Write(data, 0, data.Length);
-                        }
-                        else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.GET_ROOMS_TO_SPECTATE.ToString()))
-                        {
-                            data = new byte[1024];
-                            data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_ROOMS_TO_SPECTATE.ToString() + ":" + ThreadedTCPServer.GetSpectatorRooms());
-                            ns.Write(data, 0, data.Length);
+                            inGame = true;
+                            isSpectator = true;
+
+                            data = Encoding.ASCII.GetBytes(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString() + ":" + ThreadedTCPServer.GetIndexPlacementOfPlayers(targetName));
+                            do
+                            {
+                                ns.Write(data, 0, data.Length);
+                                Console.WriteLine("Sent to joiner!!");
+                            }
+                            while (!ns.CanWrite);
                         }
                         else
                         {
-                            data = new byte[1024];
-                            data = Encoding.ASCII.GetBytes(PACKET_TYPE.ERROR_PACKET.ToString() + ":" + "You sent unknown packet?");
+                            inLobby = true;
+                            isReady = false;
+                            inGame = false;
+                            isSpectator = true;
+
+
+                            data = Encoding.ASCII.GetBytes(PACKET_TYPE.JOIN_ROOM_FAILURE.ToString() + ":" + "Failed to join room.");
                             ns.Write(data, 0, data.Length);
                         }
                     }
-                    else if (inGame)
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.JOIN_ROOM.ToString()))
                     {
-                        if (fullPacketMessage.ToString().Contains(PACKET_TYPE.SET_MY_MOVE.ToString()))
+                        inLobby = false;
+                        isReady = false;
+                        inGame = false;
+                        isSpectator = false;
+
+                        data = new byte[1024];
+                        string targetName = fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":") + 1);
+
+                        if (ThreadedTCPServer.JoinRoom(targetName, this))
                         {
-                            Console.WriteLine("Got your move packet!");
-                            int placementIndex = Int32.Parse(fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":") + 1));
-                            gameSession.SendTurnInfo(placementIndex);
+                            isReady = false;
+                            data = Encoding.ASCII.GetBytes(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString() + ":" + targetName);
+                            do
+                            {
+                                ns.Write(data, 0, data.Length);
+                                Console.WriteLine("Sent to joiner!!");
+                            }
+                            while (!ns.CanWrite);
+                            //if (ns.CanWrite)
+                            //{
+                            //    ns.Write(data, 0, data.Length);
+                            //    Console.WriteLine("Sent to joiner!!");
+                            //}
+                            ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.JOIN_ROOM_SUCCESS);
+                        }
+                        else
+                        {
+                            data = Encoding.ASCII.GetBytes(PACKET_TYPE.JOIN_ROOM_FAILURE.ToString() + ":" + "Failed to join room.");
+                            ns.Write(data, 0, data.Length);
                         }
                     }
-                    else if (isSpectator)
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.LEAVE_ROOM.ToString()))
                     {
+                        ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.LEAVE_ROOM);
+                        inLobby = true;
+                        isReady = false;
+                        inGame = false;
+                        isSpectator = false;
 
                     }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.PLAYER_IS_READY.ToString()))
+                    {
+                        isReady = true;
+                        ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.PLAYER_IS_READY);
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.PLAYER_UNREADY.ToString()))
+                    {
+                        isReady = false;
+                        ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.PLAYER_UNREADY);
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.START_GAME.ToString()))
+                    {
+                        ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.START_GAME);
+                        inLobby = false;
+                        isReady = false;
+                        inGame = true;
+                        isSpectator = false;
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.GET_ROOMS_TO_JOIN.ToString()))
+                    {
+                        //inLobby = true;
+                        //isReady = false;
+                        //inGame = false;
+                        //isSpectator = false;
+
+                        data = new byte[1024];
+                        data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_ROOMS_TO_JOIN.ToString() + ":" + ThreadedTCPServer.GetHostedRoomList());
+                        ns.Write(data, 0, data.Length);
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.GET_ROOMS_TO_SPECTATE.ToString()))
+                    {
+                        //inLobby = true;
+                        //isReady = false;
+                        //inGame = false;
+                        //isSpectator = false;
+
+                        data = new byte[1024];
+                        data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_ROOMS_TO_SPECTATE.ToString() + ":" + ThreadedTCPServer.GetSpectatorRooms());
+                        ns.Write(data, 0, data.Length);
+                    }
+                    else
+                    {
+                        data = new byte[1024];
+                        data = Encoding.ASCII.GetBytes(PACKET_TYPE.ERROR_PACKET.ToString() + ":" + "You sent unknown packet?");
+                        ns.Write(data, 0, data.Length);
+                    }
+
+                    if (fullPacketMessage.ToString().Contains(PACKET_TYPE.SET_MY_MOVE.ToString()))
+                    {
+                        Console.WriteLine("Got your move packet!");
+                        int placementIndex = Int32.Parse(fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":") + 1));
+                        gameSession.SendTurnInfo(placementIndex);
+                    }
+
                     #endregion CheckWhatPacketIGet
 
                     //else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.MAP_DATA.ToString()))
@@ -962,9 +1052,11 @@ namespace OmokServer
                 {
                     iter.AddNewSpectator(joiningPlayer);
                     joiningPlayer.inLobby = false;
+                    Console.WriteLine("Spectator True");
                     return true;
                 }
             }
+                    Console.WriteLine("Spectator False");
             return false;
         }
 
