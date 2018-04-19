@@ -262,6 +262,45 @@ namespace OmokServer
             }
         }
 
+        public void ForceUpdate()
+        {
+            byte[] data = new byte[1024];
+
+            //Send to host first
+            data = new byte[1024];
+            data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_RAW_GAME_INFO.ToString() + ":" +
+                /* Map Data */
+                string.Join(",", GetMapData()) + ":" +
+                /* Whos Turn */
+                (thePlayers.hostTurn ? "1" : "0") + ":" +
+                /* index num */
+                thePlayers.hostIndex.ToString() + ":" +
+                /* Winner */
+                theWinner);
+            do
+            {
+                thePlayers.theHost.ns.Write(data, 0, data.Length);
+            }
+            while (!thePlayers.theHost.ns.CanWrite);
+
+            //Send to opponent
+            data = new byte[1024];
+            data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_RAW_GAME_INFO.ToString() + ":" +
+                 /* Map Data */
+                 string.Join(",", GetMapData()) + ":" +
+                 /* Whos Turn 1 or 0 */
+                 (thePlayers.opponentTurn ? "1" : "0") + ":" +
+                 /* index num 1 or 2 */
+                 thePlayers.opponentIndex.ToString() + ":" +
+                 /* Winner 0 = nobody, 1 = p1, 2 = p2 */
+                 theWinner);
+            do
+            {
+                thePlayers.theOpponent.ns.Write(data, 0, data.Length);
+            }
+            while (!thePlayers.theOpponent.ns.CanWrite);
+        }
+
         public void SendTurnInfo(int placementIndex)
         {
             bool successPlacement = false;
@@ -368,6 +407,7 @@ namespace OmokServer
                 thePlayers.theOpponent.ns.Write(data, 0, data.Length);
             }
             while (!thePlayers.theOpponent.ns.CanWrite);
+
             Console.WriteLine("New turn is " + (thePlayers.hostTurn ? "the Host." : "the Opponent"));
 
         }
@@ -547,14 +587,6 @@ namespace OmokServer
                             ns.Write(data, 0, data.Length);
                         }
                     }
-                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.SET_AI_GAME.ToString()))
-                    {
-                        inLobby = false;
-                        isReady = false;
-                        inGame = false;
-                        isSpectator = false;
-                        ThreadedTCPServer.CreateAIGame(this);
-                    }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.UNSET_AI_GAME.ToString()))
                     {
                         inLobby = false;
@@ -562,6 +594,14 @@ namespace OmokServer
                         inGame = false;
                         isSpectator = false;
                         ThreadedTCPServer.RemoveAIGame(this);
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.SET_AI_GAME.ToString()))
+                    {
+                        inLobby = false;
+                        isReady = false;
+                        inGame = false;
+                        isSpectator = false;
+                        ThreadedTCPServer.CreateAIGame(this);
                     }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.JOIN_ROOM.ToString()))
                     {
@@ -804,6 +844,10 @@ namespace OmokServer
                         if (thePacketHeader == PACKET_TYPE.LEAVE_ROOM)
                         {
                             listOfGamesWaiting.Remove(iter);
+
+                            if (iter.isAiGame)
+                                return;
+
                             theReceiver.inLobby = true;
                             ThreadedTCPServer.CreateNewRoom(theReceiver);
                             theReceiver.isReady = false;
@@ -812,6 +856,10 @@ namespace OmokServer
                         else if (thePacketHeader == PACKET_TYPE.OPPONENT_DISCONNECTED)
                         {
                             listOfGamesWaiting.Remove(iter);
+
+                            if (iter.isAiGame)
+                                return;
+
                             listOfHostedRooms.Add(theReceiver);
                             theReceiver.isReady = false;
                         }
@@ -827,8 +875,8 @@ namespace OmokServer
                                 theReceiver.isReady = false;
                                 theSender.isReady = false;
 
-                                if (iter.isAiGame)
-                                    return;
+                                //if (iter.isAiGame)
+                                //    return;
                             }
                             else
                                 thePacketHeader = PACKET_TYPE.START_GAME_FAILURE;
@@ -863,8 +911,8 @@ namespace OmokServer
                                 theReceiver.isReady = false;
                                 theSender.isReady = false;
 
-                                if (iter.isAiGame)
-                                    return;
+                                //if (iter.isAiGame)
+                                //    return;
                             }
                             else
                                 thePacketHeader = PACKET_TYPE.START_GAME_FAILURE;
@@ -894,6 +942,7 @@ namespace OmokServer
                 {
                     data = Encoding.ASCII.GetBytes(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString() + ":" + theSender.clientName);
                     theReceiver.isReady = false;
+                    theSender.isReady = false;
                     Console.WriteLine(theSender.clientName + " Connected to the room of " + theReceiver.clientName);
                 }
                 else if (thePacketHeader == PACKET_TYPE.LEAVE_ROOM)
@@ -1095,6 +1144,8 @@ namespace OmokServer
                 if (iter.theHost.clientName == theHost.clientName && iter.isAiGame)
                 {
                     listOfGamesWaiting.Remove(iter);
+                    //theHost.inLobby = true;
+                    //CreateNewRoom(theHost);
                     listOfHostedRooms.Add(theHost);
                     return true;
                 }

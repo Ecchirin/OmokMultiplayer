@@ -276,6 +276,7 @@ namespace TCPServer
 
         SET_AI_GAME,
         UNSET_AI_GAME,
+        FORCED_UPDATE,
         SET_MY_MOVE,
         MOVE_REJECTED,
         MOVE_ACCEPTED,
