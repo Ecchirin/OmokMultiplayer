@@ -14,13 +14,15 @@ namespace OmokServer
         public ConnectionThread theHost, theOpponent;
         public int hostIndex, opponentIndex;
         public bool hostTurn, opponentTurn;
+        public bool isAiGame;
 
-        public OngoingGame(ConnectionThread theHost, ConnectionThread theOpponent)
+        public OngoingGame(ConnectionThread theHost, ConnectionThread theOpponent, bool aiGame = false)
         {
             this.theHost = theHost;
             this.theOpponent = theOpponent;
             hostIndex = opponentIndex = 0;
             hostTurn = opponentTurn = false;
+            isAiGame = aiGame;
         }
     }
 
@@ -28,6 +30,8 @@ namespace OmokServer
     {
         //Map data
         private int[] mapData;
+
+        bool isAIGame = false;
 
         //Player Data
         public OngoingGame thePlayers;
@@ -43,11 +47,14 @@ namespace OmokServer
             listOfSpectators.Add(newSpectator);
         }
 
-        public GameInformation(ConnectionThread theHost, ConnectionThread theOpponent)
+        public GameInformation(ConnectionThread theHost, ConnectionThread theOpponent, bool aiGame = false)
         {
             thePlayers = new OngoingGame(theHost, theOpponent);
             GenerateEmptyMap();
-            InitPlayers();
+
+            if (!aiGame)
+                InitPlayers();
+
             Console.WriteLine("INITED");
         }
 
@@ -155,6 +162,8 @@ namespace OmokServer
 
         void InitPlayers()
         {
+            isAIGame = false;
+
             Random rand = new Random();
             if (rand.Next(1, 2) == 1)
             {
@@ -538,6 +547,22 @@ namespace OmokServer
                             ns.Write(data, 0, data.Length);
                         }
                     }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.SET_AI_GAME.ToString()))
+                    {
+                        inLobby = false;
+                        isReady = false;
+                        inGame = false;
+                        isSpectator = false;
+                        ThreadedTCPServer.CreateAIGame(this);
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.UNSET_AI_GAME.ToString()))
+                    {
+                        inLobby = false;
+                        isReady = false;
+                        inGame = false;
+                        isSpectator = false;
+                        ThreadedTCPServer.RemoveAIGame(this);
+                    }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.JOIN_ROOM.ToString()))
                     {
                         inLobby = false;
@@ -793,14 +818,17 @@ namespace OmokServer
                         else if (thePacketHeader == PACKET_TYPE.START_GAME)
                         {
                             Console.WriteLine("Value 1 : " + theSender.isReady.ToString() + " Value 2 : " + theReceiver.isReady.ToString());
-                            if (theReceiver.isReady && theSender.isReady)
+                            if (theReceiver.isReady && theSender.isReady || iter.isAiGame)
                             {
                                 thePacketHeader = PACKET_TYPE.START_GAME_SUCCESS;
                                 listOfGamesWaiting.Remove(iter);
                                 iter.theHost.inGame = iter.theOpponent.inGame = true;
-                                iter.theHost.gameSession = iter.theOpponent.gameSession = ThreadedTCPServer.StartNewGame(iter.theHost, iter.theOpponent);
+                                iter.theHost.gameSession = iter.theOpponent.gameSession = ThreadedTCPServer.StartNewGame(iter.theHost, iter.theOpponent, iter.isAiGame);
                                 theReceiver.isReady = false;
                                 theSender.isReady = false;
+
+                                if (iter.isAiGame)
+                                    return;
                             }
                             else
                                 thePacketHeader = PACKET_TYPE.START_GAME_FAILURE;
@@ -827,13 +855,16 @@ namespace OmokServer
                         else if (thePacketHeader == PACKET_TYPE.START_GAME)
                         {
                             Console.WriteLine("Value 1 : " + theSender.isReady.ToString() + " Value 2 : " + theReceiver.isReady.ToString());
-                            if (theReceiver.isReady && theSender.isReady)
+                            if (theReceiver.isReady && theSender.isReady || iter.isAiGame)
                             {
                                 thePacketHeader = PACKET_TYPE.START_GAME_SUCCESS;
                                 listOfGamesWaiting.Remove(iter);
-                                ThreadedTCPServer.StartNewGame(iter.theHost, iter.theOpponent);
+                                ThreadedTCPServer.StartNewGame(iter.theHost, iter.theOpponent, iter.isAiGame);
                                 theReceiver.isReady = false;
                                 theSender.isReady = false;
+
+                                if (iter.isAiGame)
+                                    return;
                             }
                             else
                                 thePacketHeader = PACKET_TYPE.START_GAME_FAILURE;
@@ -1033,11 +1064,38 @@ namespace OmokServer
             {
                 if (iter.clientName == targetName && !iter.inLobby)
                 {
-                    OngoingGame newGame = new OngoingGame();
-                    newGame.theHost = iter;
-                    newGame.theOpponent = joiningPlayer;
+                    OngoingGame newGame = new OngoingGame(iter, joiningPlayer);
                     listOfGamesWaiting.Add(newGame);
                     listOfHostedRooms.Remove(iter);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static bool CreateAIGame(ConnectionThread theHost)
+        {
+            foreach (ConnectionThread iter in listOfHostedRooms)
+            {
+                if (iter.clientName == theHost.clientName && !iter.inLobby)
+                {
+                    OngoingGame newGame = new OngoingGame(iter, iter, true);
+                    listOfGamesWaiting.Add(newGame);
+                    listOfHostedRooms.Remove(iter);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static bool RemoveAIGame(ConnectionThread theHost)
+        {
+            foreach (OngoingGame iter in listOfGamesWaiting)
+            {
+                if (iter.theHost.clientName == theHost.clientName && iter.isAiGame)
+                {
+                    listOfGamesWaiting.Remove(iter);
+                    listOfHostedRooms.Add(theHost);
                     return true;
                 }
             }
@@ -1081,9 +1139,9 @@ namespace OmokServer
         }
 
 
-        public static GameInformation StartNewGame(ConnectionThread theHost, ConnectionThread theOpponent)
+        public static GameInformation StartNewGame(ConnectionThread theHost, ConnectionThread theOpponent, bool isAiGame = false)
         {
-            GameInformation newGame = new GameInformation(theHost, theOpponent);
+            GameInformation newGame = new GameInformation(theHost, theOpponent, isAiGame);
             listOfOngoingGames.Add(newGame);
             return newGame;
         }

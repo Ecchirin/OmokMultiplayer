@@ -274,6 +274,8 @@ namespace TCPServer
         GET_CURRENT_USERS_IN_LOBBY,
         GET_RAW_GAME_INFO,
 
+        SET_AI_GAME,
+        UNSET_AI_GAME,
         SET_MY_MOVE,
         MOVE_REJECTED,
         MOVE_ACCEPTED,
@@ -436,23 +438,34 @@ namespace TCPServer
         {
             byte[] data = new byte[1024];
             data = Encoding.ASCII.GetBytes(packetType.ToString() + ":" + message);
-            ns.Write(data, 0, data.Length);
+
+            do
+            {
+                ns.Write(data, 0, data.Length);
+            }
+            while (!ns.CanWrite);
         }
 
         public void SendMessage(PACKET_TYPE packetType, int message)
         {
             byte[] data = new byte[1024];
             data = Encoding.ASCII.GetBytes(packetType.ToString() + ":" + message.ToString());
-            ns.Write(data, 0, data.Length);
-
+            do
+            {
+                ns.Write(data, 0, data.Length);
+            }
+            while (!ns.CanWrite);
         }
 
         public void SendPosition(int position)
         {
             byte[] data = new byte[1024];
             data = Encoding.ASCII.GetBytes(PACKET_TYPE.SET_MY_MOVE.ToString() + ":" + position.ToString());
-            ns.Write(data, 0, data.Length);
-
+            do
+            {
+                ns.Write(data, 0, data.Length);
+            }
+            while (!ns.CanWrite);
         }
 
         //public string TestRecieve()
