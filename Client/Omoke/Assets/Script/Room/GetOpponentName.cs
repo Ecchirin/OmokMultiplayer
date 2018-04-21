@@ -66,7 +66,7 @@ public class GetOpponentName : MonoBehaviour {
             readyOrNotSign_P2.SetActive(false);
         }
 
-        if(readyOrNotSign_P1.active == true && readyOrNotSign_P2 == true)
+        if(readyOrNotSign_P1.active == true && readyOrNotSign_P2.active == true)
         {
             if (!initTimer)
                 InitCountdownTimer();

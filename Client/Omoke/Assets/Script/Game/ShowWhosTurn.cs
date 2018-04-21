@@ -73,5 +73,22 @@ public class ShowWhosTurn : MonoBehaviour {
             else
                 playerGuiText.text = playerTwo + " turn";
         }
-	}
+
+        if (server.GetMyTurn() && whoIsBlackOrWhite && !isSpectator)
+        {
+            whoIsBlackOrWhite.text = server.userName + " is black\n" + server.opponentName + " is white";
+        }
+        else if (!server.GetMyTurn() && whoIsBlackOrWhite && !isSpectator)
+        {
+            whoIsBlackOrWhite.text = server.userName + " is white\n" + server.opponentName + " is black";
+        }
+        if (server.GetMyTurn() && whoIsBlackOrWhite && isSpectator)
+        {
+            whoIsBlackOrWhite.text = playerOne + " is black\n" + playerTwo + " is white";
+        }
+        else if (!server.GetMyTurn() && whoIsBlackOrWhite && isSpectator)
+        {
+            whoIsBlackOrWhite.text = playerOne + " is white\n" + playerTwo + " is black";
+        }
+    }
 }

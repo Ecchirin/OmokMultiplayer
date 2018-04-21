@@ -20,6 +20,7 @@ public class ServerConnection : MonoBehaviour {
 
     public TextDisplay showText = null;
 
+    
     //Room swap
     [SerializeField]
     string lostConnectScene = "Server Disconnect";
@@ -45,6 +46,10 @@ public class ServerConnection : MonoBehaviour {
     ConnectionClass server = null;
 
     //Game package
+    [SerializeField]
+    float timerCountDown = 5;
+    private DateTime currentTime = DateTime.Now;
+    private DateTime targetTime = DateTime.Now;
     public bool receiveNewCurrentGamePacket = false;
     CurrentGameInfo currentGame /*= new CurrentGameInfo()*/;
 
@@ -97,13 +102,20 @@ public class ServerConnection : MonoBehaviour {
             Debug.Log(currentGame.theWinner + " is the winner");
             Debug.Log("GOT A PACKET OF GAME DATA");
             Debug.Log(currentGame.isYourTurn + " isit your turn?");
+            newTimersForGameUpdate();
         }
         else if (tempstring.Contains(PACKET_TYPE.OPPONENT_DISCONNECTED.ToString()))
         {
             LeaveTheRoom();
             this.GetComponent<SceneChange>().ChangeScene("Room menu");
         }
-
+        if(isHost)
+            currentTime = DateTime.Now;
+        if(currentTime > targetTime)
+        {
+            targetTime = DateTime.Now.AddSeconds(timerCountDown);
+            server.SendMessage(PACKET_TYPE.FORCED_UPDATE, "FORCING UPDATE!!!!!!!!!");
+        }
     }
 
     void RoomUpdate()
@@ -140,7 +152,7 @@ public class ServerConnection : MonoBehaviour {
             inRoom = false;
             opponentInRoom = false;
             opponentIsReady = false;
-            isHost = false;
+            //isHost = false;
             inGame = true;
             receiveNewCurrentGamePacket = false;
             this.GetComponent<SceneChange>().ChangeScene(goToGameRoom);
@@ -174,6 +186,16 @@ public class ServerConnection : MonoBehaviour {
         }
     }
 
+    public void SetAIGame()
+    {
+        server.SendMessage(PACKET_TYPE.SET_AI_GAME, "Setting AI Game");
+    }
+
+    public void UnSetAIGame()
+    {
+        server.SendMessage(PACKET_TYPE.UNSET_AI_GAME, "Setting AI Game");
+    }
+
     //Send click location of board
     public void SetMoveOnBoard(int boardArray)
     {
@@ -193,6 +215,7 @@ public class ServerConnection : MonoBehaviour {
         Debug.Log("GOT A PACKET OF GAME DATA");
         Debug.Log(currentGame.theWinner + " is the winner");
         Debug.Log(currentGame.isYourTurn + " isit your turn?");
+        newTimersForGameUpdate();
     }
 
     //Connect to server
@@ -487,6 +510,12 @@ public class ServerConnection : MonoBehaviour {
     public void ServerDestroy()
     {
         Destroy(this.gameObject);
+    }
+
+    private void newTimersForGameUpdate()
+    {
+        currentTime = DateTime.Now;
+        targetTime = DateTime.Now.AddSeconds(timerCountDown);
     }
 
     //When gameobject detect application has been closed this will close the connection to the server (prevent server crash)

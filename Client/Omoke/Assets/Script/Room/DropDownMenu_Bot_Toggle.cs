@@ -13,6 +13,8 @@ public class DropDownMenu_Bot_Toggle : MonoBehaviour {
     GameObject cancelBtn = null;
     [SerializeField]
     string serverServiceTagName = "ServerService";
+    [SerializeField]
+    bool secondPlayer = false;
 
     private TMP_Dropdown dropDownMenu = null;
     private ServerConnection server = null;
@@ -29,6 +31,10 @@ public class DropDownMenu_Bot_Toggle : MonoBehaviour {
             Debug.Log("ERROR: No TM dropdown menu found within the gameobject");
         if (server == null)
             Debug.Log("ERROR: No server object has been found");
+
+        PlayerPrefs.SetInt("AIGAME", 0);
+        PlayerPrefs.SetInt("Player2AI", 0);
+        PlayerPrefs.SetInt("Player1AI", 0);
     }
 
     // Update is called once per frame
@@ -43,6 +49,14 @@ public class DropDownMenu_Bot_Toggle : MonoBehaviour {
             currentValue = dropDownMenu.value;
             if (dropDownMenu.value == 0)
             {
+                if (secondPlayer)
+                {
+                    server.UnSetAIGame();
+                    PlayerPrefs.SetInt("AIGAME", 0);
+                    PlayerPrefs.SetInt("Player2AI", 0);
+                }
+                else
+                    PlayerPrefs.SetInt("Player1AI", 0);
                 readyOrNot.SetActive(false);
                 if(readyBtn != null && cancelBtn != null)
                 {
@@ -50,12 +64,24 @@ public class DropDownMenu_Bot_Toggle : MonoBehaviour {
                     cancelBtn.SetActive(false);
                 }
                 //Send a packet to server to tell it to not be ready
-                if (server != null)
+                if (server != null && !secondPlayer)
                     server.RoomSetReady(false);
             }
             else
             {
+                if (secondPlayer)
+                {
+                    server.SetAIGame();
+                    PlayerPrefs.SetInt("AIGAME", 1);
+                    PlayerPrefs.SetInt("Player2AI", currentValue);
+                }
+                else
+                    PlayerPrefs.SetInt("Player1AI", currentValue);
+
+                //else
+                //{
                 readyOrNot.SetActive(true);
+                //}
                 //Send a packet to server to tell it to be ready
                 if (readyBtn != null && cancelBtn != null)
                 {
@@ -63,7 +89,7 @@ public class DropDownMenu_Bot_Toggle : MonoBehaviour {
                     cancelBtn.SetActive(false);
                     //string name = dropDownMenu.options[1].text;
                 }
-                if (server != null)
+                if (server != null && !secondPlayer)
                     server.RoomSetReady(true);
             }
         }
