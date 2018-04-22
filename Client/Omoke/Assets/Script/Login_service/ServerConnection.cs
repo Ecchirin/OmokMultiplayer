@@ -55,6 +55,8 @@ public class ServerConnection : MonoBehaviour {
 
     ConnectionStatus cts_connection_status = ConnectionStatus.NOT_CONNECTING;
 
+    string prevRawData;
+
     //Used to initialise objects
     private void Start()
     {
@@ -97,11 +99,20 @@ public class ServerConnection : MonoBehaviour {
         Debug.Log("GameRoomUpdate: " + tempstring);
         if(tempstring.Contains(PACKET_TYPE.GET_RAW_GAME_INFO.ToString()))
         {
-            server.TranslatePacketIntoGameInformation(tempstring, out currentGame);
+            try
+            {
+                server.TranslatePacketIntoGameInformation(tempstring, out currentGame);
+                prevRawData = tempstring;
+            }
+            catch(Exception e)
+            {
+                server.TranslatePacketIntoGameInformation(prevRawData, out currentGame);
+            }
+
             receiveNewCurrentGamePacket = true;
-            Debug.Log(currentGame.theWinner + " is the winner");
-            Debug.Log("GOT A PACKET OF GAME DATA");
-            Debug.Log(currentGame.isYourTurn + " isit your turn?");
+            //Debug.Log(currentGame.theWinner + " is the winner");
+            //Debug.Log("GOT A PACKET OF GAME DATA");
+            //Debug.Log(currentGame.isYourTurn + " isit your turn?");
             newTimersForGameUpdate();
         }
         else if (tempstring.Contains(PACKET_TYPE.OPPONENT_DISCONNECTED.ToString()))
@@ -166,11 +177,20 @@ public class ServerConnection : MonoBehaviour {
         }
         else if (tempstring.Contains(PACKET_TYPE.GET_RAW_GAME_INFO.ToString()))
         {
-            server.TranslatePacketIntoGameInformation(tempstring, out currentGame);
+            try
+            {
+                server.TranslatePacketIntoGameInformation(tempstring, out currentGame);
+                prevRawData = tempstring;
+            }
+            catch (Exception e)
+            {
+                server.TranslatePacketIntoGameInformation(prevRawData, out currentGame);
+            }
+
             receiveNewCurrentGamePacket = true;
-            Debug.Log(currentGame.theWinner + " is the winner");
-            Debug.Log("GOT A PACKET OF GAME DATA");
-            Debug.Log(currentGame.isYourTurn + " isit your turn?");
+            //Debug.Log(currentGame.theWinner + " is the winner");
+            //Debug.Log("GOT A PACKET OF GAME DATA");
+            //Debug.Log(currentGame.isYourTurn + " isit your turn?");
         }
     }
 

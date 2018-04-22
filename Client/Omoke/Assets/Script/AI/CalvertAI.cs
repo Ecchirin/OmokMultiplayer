@@ -110,6 +110,17 @@ public class CalvertAI : MonoBehaviour {
                     if (IsInBoard(ConnectionClass.ConvertXYPositionToIndex(x + xOffsets[i], y + yOffsets[i]), board.Length) &&
                         board[ConnectionClass.ConvertXYPositionToIndex(x + xOffsets[i], y + yOffsets[i])] == 0)
                     {
+                        if (botIndex == 2)
+                        {
+                            if (ForbiddenPointFinder.IsOverline(x + xOffsets[i], y + yOffsets[i], board))
+                            {
+                                server.SetMoveOnBoard(ConnectionClass.ConvertXYPositionToIndex(x + xOffsets[i], y + yOffsets[i]));
+                                historyOfMoves.Add(ConnectionClass.ConvertXYPositionToIndex(x + xOffsets[i], y + yOffsets[i]));
+                                Debug.Log("AI Found row of five or more at : " + ConnectionClass.ConvertXYPositionToIndex(x + xOffsets[i], y + yOffsets[i]));
+                                return ConnectionClass.ConvertXYPositionToIndex(x + xOffsets[i], y + yOffsets[i]);
+                            }
+                        }
+
                         if (ForbiddenPointFinder.IsFive(x + xOffsets[i], y + yOffsets[i], board, botIndex))
                         {
                             server.SetMoveOnBoard(ConnectionClass.ConvertXYPositionToIndex(x + xOffsets[i], y + yOffsets[i]));
