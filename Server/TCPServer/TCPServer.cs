@@ -99,6 +99,51 @@ namespace TCPServer
             return false;
         }
 
+        public static bool IsThree(int x, int y, int[] mapData, int colorIndex)
+        {
+            if (x < 0 || x >= 15 || y < 0 || y >= 15)
+                return false;
+
+            int directionalCheck, forwardPlacements, backwardPlacements, checkX, checkY;
+            int thePlacementIndex = mapData[ConnectionClass.ConvertXYPositionToIndex(x, y)];
+            int prevIndex = thePlacementIndex;
+
+            if (thePlacementIndex == 0)
+            {
+                mapData[ConnectionClass.ConvertXYPositionToIndex(x, y)] = colorIndex;
+                thePlacementIndex = colorIndex;
+            }
+
+            for (directionalCheck = 0; directionalCheck < 4; ++directionalCheck)
+            {
+                forwardPlacements = backwardPlacements = 0;
+                for (checkX = x + DirectionalCheckX[directionalCheck],
+                     checkY = y + DirectionalCheckY[directionalCheck];
+                     CheckPlacementOfMap(checkX, checkY, mapData) == thePlacementIndex;
+                     checkX += DirectionalCheckX[directionalCheck],
+                     checkY += DirectionalCheckY[directionalCheck])
+                    forwardPlacements++;
+
+                for (checkX = x - DirectionalCheckX[directionalCheck],
+                     checkY = y - DirectionalCheckY[directionalCheck];
+                     CheckPlacementOfMap(checkX, checkY, mapData) == thePlacementIndex;
+                     checkX -= DirectionalCheckX[directionalCheck],
+                     checkY -= DirectionalCheckY[directionalCheck])
+                    backwardPlacements++;
+
+                if (forwardPlacements + backwardPlacements == 2)
+                {
+                    if (prevIndex == 0)
+                        mapData[ConnectionClass.ConvertXYPositionToIndex(x, y)] = 0;
+                    return true;
+                }
+            }
+
+            if (prevIndex == 0)
+                mapData[ConnectionClass.ConvertXYPositionToIndex(x, y)] = 0;
+            return false;
+        }
+
         public static bool IsFour(int x, int y, int[] mapData, int colorIndex)
         {
             if (x < 0 || x >= 15 || y < 0 || y >= 15)
