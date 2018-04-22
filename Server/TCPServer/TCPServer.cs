@@ -20,7 +20,7 @@ namespace TCPServer
         {
             int theArrayIndex = ConnectionClass.ConvertXYPositionToIndex(x, y);
             if (theArrayIndex < 0 || theArrayIndex >= 225)
-                return 5;
+                return 25;
 
             return mapData[theArrayIndex];
         }
@@ -364,26 +364,52 @@ namespace TCPServer
             positionY = index / 15;
         }
 
-        public void TranslatePacketIntoGameInformation(string theMessage, out CurrentGameInfo theGame)
+        public void TranslatePacketIntoGameInformation(string theMessage, ref CurrentGameInfo theGame)
         {
             //Remove packet header from message
-            theMessage = theMessage.Substring(theMessage.IndexOf(":") + 1);
+            try
+            {
+                theMessage = theMessage.Substring(theMessage.IndexOf(":") + 1);
+            }
+            catch (Exception e)
+            { }
 
+            try
+            {
             //Get map data
-            string mapDataString = theMessage.Substring(0, theMessage.IndexOf(":"));
-            theGame.mapData = mapDataString.Split(',').Select(int.Parse).ToArray();
+                string mapDataString = theMessage.Substring(0, theMessage.IndexOf(":"));
+                theGame.mapData = mapDataString.Split(',').Select(int.Parse).ToArray();
+            }
+            catch (Exception e)
+            { }
 
-            //cut map data away
-            theMessage = theMessage.Substring(theMessage.IndexOf(":") + 1);
-            theGame.isYourTurn = (theMessage.Substring(0, 1) == 1.ToString() ? true : false);
+            try
+            {
+                //cut map data away
+                theMessage = theMessage.Substring(theMessage.IndexOf(":") + 1);
+                theGame.isYourTurn = (theMessage.Substring(0, 1) == 1.ToString() ? true : false);
+            }
+            catch (Exception e)
+            { }
 
-            //cut away boolean check of player turn
-            theMessage = theMessage.Substring(theMessage.IndexOf(":") + 1);
-            theGame.myIndexNumber = Int32.Parse(theMessage.Substring(0, 1));
+            try
+            {
+                //cut away boolean check of player turn
+                theMessage = theMessage.Substring(theMessage.IndexOf(":") + 1);
+                theGame.myIndexNumber = Int32.Parse(theMessage.Substring(0, 1));
+            }
+            catch (Exception e)
+            { }
 
-            //Get index 
-            theMessage = theMessage.Substring(theMessage.IndexOf(":") + 1);
-            theGame.theWinner = Int32.Parse(theMessage.Substring(0, 1));
+            try
+            {
+                //Get index 
+                theMessage = theMessage.Substring(theMessage.IndexOf(":") + 1);
+                theGame.theWinner = Int32.Parse(theMessage.Substring(0, 1));
+            }
+            catch (Exception e)
+            { }
+
         }
 
         public CurrentGameInfo CreateGameInformation()
