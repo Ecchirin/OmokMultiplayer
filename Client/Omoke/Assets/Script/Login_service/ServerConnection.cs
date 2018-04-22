@@ -97,7 +97,7 @@ public class ServerConnection : MonoBehaviour {
         Debug.Log("GameRoomUpdate: " + tempstring);
         if(tempstring.Contains(PACKET_TYPE.GET_RAW_GAME_INFO.ToString()))
         {
-            server.TranslatePacketIntoGameInformation(tempstring, ref currentGame);
+            server.TranslatePacketIntoGameInformation(tempstring, out currentGame);
             receiveNewCurrentGamePacket = true;
             Debug.Log(currentGame.theWinner + " is the winner");
             Debug.Log("GOT A PACKET OF GAME DATA");
@@ -166,7 +166,7 @@ public class ServerConnection : MonoBehaviour {
         }
         else if (tempstring.Contains(PACKET_TYPE.GET_RAW_GAME_INFO.ToString()))
         {
-            server.TranslatePacketIntoGameInformation(tempstring, ref currentGame);
+            server.TranslatePacketIntoGameInformation(tempstring, out currentGame);
             receiveNewCurrentGamePacket = true;
             Debug.Log(currentGame.theWinner + " is the winner");
             Debug.Log("GOT A PACKET OF GAME DATA");
@@ -210,7 +210,7 @@ public class ServerConnection : MonoBehaviour {
                 return;
         }
         while (!tempstring.Contains(PACKET_TYPE.GET_RAW_GAME_INFO.ToString()));
-        server.TranslatePacketIntoGameInformation(tempstring, ref currentGame);
+        server.TranslatePacketIntoGameInformation(tempstring, out currentGame);
         receiveNewCurrentGamePacket = true;
         Debug.Log("GOT A PACKET OF GAME DATA");
         Debug.Log(currentGame.theWinner + " is the winner");

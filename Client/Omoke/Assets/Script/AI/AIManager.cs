@@ -25,6 +25,7 @@ public class AIManager : MonoBehaviour {
             Debug.Log("AI: " + PlayerPrefs.GetInt("Player2AI", 0));
             newAI.GetComponent<CalvertAI>().initialiseTheBot(!server.GetMyTurn(), (server.MyNumber() == 1 ? 2 : 1), true);
         }
+        this.enabled = false;
     }
 	
 	// Update is called once per frame
