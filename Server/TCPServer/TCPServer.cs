@@ -319,7 +319,7 @@ namespace TCPServer
             positionY = index / 15;
         }
 
-        public void TranslatePacketIntoGameInformation(string theMessage, ref CurrentGameInfo theGame)
+        public void TranslatePacketIntoGameInformation(string theMessage, out CurrentGameInfo theGame)
         {
             //Remove packet header from message
             theMessage = theMessage.Substring(theMessage.IndexOf(":") + 1);

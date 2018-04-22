@@ -54,6 +54,8 @@ namespace OmokServer
 
             if (!aiGame)
                 InitPlayers();
+            else
+                InitAI();
 
             Console.WriteLine("INITED");
         }
@@ -248,6 +250,60 @@ namespace OmokServer
             }
         }
 
+        void InitAI()
+        {
+            isAIGame = true;
+
+            Random rand = new Random();
+            if (rand.Next(1, 2) == 1)
+            {
+                thePlayers.hostIndex = 1;
+                thePlayers.opponentIndex = 2;
+                thePlayers.hostTurn = true;
+                thePlayers.opponentTurn = false;
+
+                byte[] data = new byte[1024];
+                data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_RAW_GAME_INFO.ToString() + ":" +
+                    /* Map Data */
+                    string.Join(",", GetMapData()) + ":" +
+                    /* Whos Turn */
+                    (thePlayers.hostTurn ? "1" : "0") + ":" +
+                    /* index num */
+                    "1" + ":" +
+                    /* Winner */
+                    "0");
+                do
+                {
+                    thePlayers.theHost.ns.Write(data, 0, data.Length);
+                    Console.WriteLine("HOST TURN IS FIRST SENT");
+                }
+                while (!thePlayers.theHost.ns.CanWrite);
+            }
+            else
+            {
+                thePlayers.hostIndex = 2;
+                thePlayers.opponentIndex = 1;
+                thePlayers.opponentTurn = true;
+                thePlayers.hostTurn = false;
+                byte[] data = new byte[1024];
+                data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_RAW_GAME_INFO.ToString() + ":" +
+                     /* Map Data */
+                     string.Join(",", GetMapData()) + ":" +
+                     /* Whos Turn 1 or 0 */
+                     (thePlayers.hostTurn ? "1" : "0") + ":" +
+                     /* index num 1 or 2 */
+                     "2" + ":" +
+                     /* Winner 0 = nobody, 1 = p1, 2 = p2 */
+                     "0");
+                do
+                {
+                    thePlayers.theHost.ns.Write(data, 0, data.Length);
+                    Console.WriteLine("HOST TURN IS 2nd SENT");
+                }
+                while (!thePlayers.theHost.ns.CanWrite);
+            }
+        }
+
         public void SendTurnToSpectators(byte[] data)
         {
             foreach (ConnectionThread iter in listOfSpectators)
@@ -282,6 +338,9 @@ namespace OmokServer
                 thePlayers.theHost.ns.Write(data, 0, data.Length);
             }
             while (!thePlayers.theHost.ns.CanWrite);
+
+            if (isAIGame)
+                return;
 
             //Send to opponent
             data = new byte[1024];
@@ -378,6 +437,8 @@ namespace OmokServer
                 /* Winner */
                 theWinner);
 
+            Console.WriteLine("HOST INDEX = " + thePlayers.hostIndex);
+
             if (thePlayers.hostIndex == 1)
                 SendTurnToSpectators(data);
 
@@ -386,6 +447,9 @@ namespace OmokServer
                 thePlayers.theHost.ns.Write(data, 0, data.Length);
             }
             while (!thePlayers.theHost.ns.CanWrite);
+
+            if (isAIGame)
+                return;
 
             //Send to opponent
             data = new byte[1024];
@@ -554,6 +618,10 @@ namespace OmokServer
                         data = new byte[1024];
                         data = Encoding.ASCII.GetBytes(PACKET_TYPE.ASSIGN_NAME_PACKET.ToString() + ":" + clientName.ToString());
                         ns.Write(data, 0, data.Length);
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.FORCED_UPDATE.ToString()))
+                    {
+                        gameSession.ForceUpdate();
                     }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.JOIN_ROOM_SPECTATE.ToString()))
                     {
