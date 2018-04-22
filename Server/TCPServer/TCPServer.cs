@@ -364,6 +364,19 @@ namespace TCPServer
             positionY = index / 15;
         }
 
+        public static IEnumerable<int> StringToIntList(string str)
+        {
+            if (String.IsNullOrEmpty(str))
+                yield break;
+
+            foreach (var s in str.Split(','))
+            {
+                int num;
+                if (int.TryParse(s, out num))
+                    yield return num;
+            }
+        }
+
         public void TranslatePacketIntoGameInformation(string theMessage, out CurrentGameInfo theGame)
         {
             //Remove packet header from message
@@ -371,7 +384,7 @@ namespace TCPServer
 
             //Get map data
             string mapDataString = theMessage.Substring(0, theMessage.IndexOf(":"));
-            theGame.mapData = mapDataString.Split(',').Select(int.Parse).ToArray();
+            theGame.mapData = StringToIntList(mapDataString).ToArray();
 
             //cut map data away
             theMessage = theMessage.Substring(theMessage.IndexOf(":") + 1);
