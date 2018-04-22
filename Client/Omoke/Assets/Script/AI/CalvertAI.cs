@@ -4,7 +4,9 @@ using UnityEngine;
 using TCPServer;
 using System.Linq;
 
-//using System;
+
+
+using System;
 /// <summary>
 /// Very simple block ai
 /// </summary>
@@ -36,6 +38,7 @@ public class CalvertAI : MonoBehaviour {
 
     List<int> historyOfMoves = new List<int>();
 
+    float delay = 1;
     
     // Use this for initialization
     void Start () {
@@ -46,18 +49,40 @@ public class CalvertAI : MonoBehaviour {
             this.enabled = false;
             return;
         }
-        Random.InitState(20);
+        UnityEngine.Random.InitState(Guid.NewGuid().GetHashCode());
     }
 	
 	// Update is called once per frame (Need do send to server)
-	void Update () {
+	void Update ()
+    {
         if (!initialised)
             return;
+
+
+
+        if (server.GetWinner() != 0)
+            this.enabled = false;
         if (!server.GetMyTurn() && isAIPlayer2)
-            GetAIDecision();
+        {
+            delay -= Time.deltaTime;
+
+            if (delay <= 0)
+            {
+                delay = 1;
+                GetAIDecision();
+            }
+        }
         else if (!isAIPlayer2 && server.GetMyTurn())
-            GetAIDecision();
-	}
+        {
+            delay -= Time.deltaTime;
+
+            if (delay <= 0)
+            {
+                delay = 1;
+                GetAIDecision();
+            }
+        }
+    }
 
 
     //AI Decide where to put the tiles (Random number for now)
@@ -71,18 +96,43 @@ public class CalvertAI : MonoBehaviour {
 
         //Get all opponent color position in board
         List<int>listOfOpponentPlacement = FindAllIndexOf(board, (botIndex == 1 ? 2 : 1));
-        List<int> tempListCopy = listOfOpponentPlacement;
+        List<int> tempListCopy = new List<int>(listOfOpponentPlacement);
         Queue<int> removeablePositions = new Queue<int>();
 
-        while (tempListCopy.Count > 0)
+        if (historyOfMoves.Any())
+        {
+            //Run through list to check where is the next available location to put a point
+            foreach (int thePosition in historyOfMoves)
+            {
+                ConnectionClass.ConvertArrayPositionToXY(thePosition, out x, out y);
+                for (int i = 0; i < 8; ++i)
+                {
+                    if (IsInBoard(ConnectionClass.ConvertXYPositionToIndex(x + xOffsets[i], y + yOffsets[i]), board.Length) &&
+                        board[ConnectionClass.ConvertXYPositionToIndex(x + xOffsets[i], y + yOffsets[i])] == 0)
+                    {
+                        if (ForbiddenPointFinder.IsFive(x + xOffsets[i], y + yOffsets[i], board, botIndex))
+                        {
+                            server.SetMoveOnBoard(ConnectionClass.ConvertXYPositionToIndex(x + xOffsets[i], y + yOffsets[i]));
+                            historyOfMoves.Add(ConnectionClass.ConvertXYPositionToIndex(x + xOffsets[i], y + yOffsets[i]));
+                            Debug.Log("AI Found row of five at : " + ConnectionClass.ConvertXYPositionToIndex(x + xOffsets[i], y + yOffsets[i]));
+                            return ConnectionClass.ConvertXYPositionToIndex(x + xOffsets[i], y + yOffsets[i]);
+                        }
+                    }
+                }
+            }
+        }
+
+        while (tempListCopy.Any())
         {
             foreach(int thePosition in tempListCopy)
             {
+                
                 ConnectionClass.ConvertArrayPositionToXY(thePosition, out x, out y);
 
                 removeablePositions.Enqueue(thePosition);
                 if (ForbiddenPointFinder.IsFour(x, y, board, (botIndex == 1 ? 2 : 1)))
                 {
+                    Debug.Log("In is 4 (Check Enemy)");
                     int chosen = ForLoopCheckEmpty(x, y, 4, (botIndex == 1 ? 2 : 1), board, ref removeablePositions);
                     if (chosen != -1)
                     {
@@ -98,8 +148,11 @@ public class CalvertAI : MonoBehaviour {
                 tempListCopy.Remove(removeablePositions.Dequeue());
         }
 
+        tempListCopy.Clear();
+        tempListCopy = new List<int>(listOfOpponentPlacement);
+
         //if reach here, no isfours were found. Check for isThrees
-        while (tempListCopy.Count > 0)
+        while (tempListCopy.Any())
         {
             foreach (int thePosition in tempListCopy)
             {
@@ -108,6 +161,7 @@ public class CalvertAI : MonoBehaviour {
                 removeablePositions.Enqueue(thePosition);
                 if (ForbiddenPointFinder.IsThree(x, y, board, (botIndex == 1 ? 2 : 1)))
                 {
+                    Debug.Log("In is 3 (Check Enemy)");
                     int chosen = ForLoopCheckEmpty(x, y, 3, (botIndex == 1 ? 2 : 1), board, ref removeablePositions);
                     if (chosen != -1)
                     {
@@ -135,14 +189,7 @@ public class CalvertAI : MonoBehaviour {
                     if (IsInBoard(ConnectionClass.ConvertXYPositionToIndex(x + xOffsets[i], y + yOffsets[i]), board.Length) &&
                         board[ConnectionClass.ConvertXYPositionToIndex(x + xOffsets[i], y + yOffsets[i])] == 0)
                     {
-                        if (ForbiddenPointFinder.IsFive(x + xOffsets[i], y + yOffsets[i], board, botIndex))
-                        {
-                            server.SetMoveOnBoard(ConnectionClass.ConvertXYPositionToIndex(x + xOffsets[i], y + yOffsets[i]));
-                            historyOfMoves.Add(ConnectionClass.ConvertXYPositionToIndex(x + xOffsets[i], y + yOffsets[i]));
-                            Debug.Log("AI Found row of five at : " + ConnectionClass.ConvertXYPositionToIndex(x + xOffsets[i], y + yOffsets[i]));
-                            return ConnectionClass.ConvertXYPositionToIndex(x + xOffsets[i], y + yOffsets[i]);
-                        }
-                        else if (ForbiddenPointFinder.IsFour(x + xOffsets[i], y + yOffsets[i], board, botIndex))
+                        if (ForbiddenPointFinder.IsFour(x + xOffsets[i], y + yOffsets[i], board, botIndex))
                         {
                             server.SetMoveOnBoard(ConnectionClass.ConvertXYPositionToIndex(x + xOffsets[i], y + yOffsets[i]));
                             historyOfMoves.Add(ConnectionClass.ConvertXYPositionToIndex(x + xOffsets[i], y + yOffsets[i]));
@@ -161,7 +208,7 @@ public class CalvertAI : MonoBehaviour {
             }
 
             //if not chain stones
-            List<int> tempList = historyOfMoves;
+            List<int> tempList = new List<int>(historyOfMoves);
 
             do
             {
@@ -182,10 +229,10 @@ public class CalvertAI : MonoBehaviour {
 
                 tempList.Remove(locationPicked);
 
-                if (!tempList.Any())
-                    break;
+                //if (!tempList.Any())
+                //    break;
             }
-            while (true);
+            while (tempList.Any());
         }
 
         int randLocation = 0;
@@ -244,10 +291,9 @@ public class CalvertAI : MonoBehaviour {
         //Left to right
         Queue<int> queueToReturn = new Queue<int>();
 
-        for (int currCount = 0, tempX = x, tempY = y; currCount < counts && board[ConnectionClass.ConvertXYPositionToIndex(tempX, tempY)] == opponentColor; ++currCount, ++tempX)
+        for (int currCount = 0, tempX = x, tempY = y; currCount < counts && IsInBoard(ConnectionClass.ConvertXYPositionToIndex(tempX, tempY), board.Length) && board[ConnectionClass.ConvertXYPositionToIndex(tempX, tempY)] == opponentColor; ++currCount, ++tempX)
         {
-            if (!IsInBoard(ConnectionClass.ConvertXYPositionToIndex(tempX, tempY), board.Length))
-                break;
+
 
             queueToReturn.Enqueue(ConnectionClass.ConvertXYPositionToIndex(tempX, tempY));
 
@@ -266,7 +312,7 @@ public class CalvertAI : MonoBehaviour {
                         return ConnectionClass.ConvertXYPositionToIndex(tempX, tempY);
                     }
                 }
-                else if (IsInBoard(ConnectionClass.ConvertXYPositionToIndex(x - 1, y), board.Length))
+                if (IsInBoard(ConnectionClass.ConvertXYPositionToIndex(x - 1, y), board.Length))
                 {
                     if (board[ConnectionClass.ConvertXYPositionToIndex(x - 1, y)] == 0)
                     {
@@ -277,10 +323,10 @@ public class CalvertAI : MonoBehaviour {
         }
 
         //2nd direction. Diagonal Left to right
-        for (int currCount = 0, tempX = x, tempY = y; currCount < counts && board[ConnectionClass.ConvertXYPositionToIndex(tempX, tempY)] == opponentColor; ++currCount, ++tempX, ++tempY)
+        for (int currCount = 0, tempX = x, tempY = y; currCount < counts && IsInBoard(ConnectionClass.ConvertXYPositionToIndex(tempX, tempY), board.Length) && board[ConnectionClass.ConvertXYPositionToIndex(tempX, tempY)] == opponentColor; ++currCount, ++tempX, ++tempY)
         {
-            if (!IsInBoard(ConnectionClass.ConvertXYPositionToIndex(tempX, tempY), board.Length))
-                break;
+            //if (!IsInBoard(ConnectionClass.ConvertXYPositionToIndex(tempX, tempY), board.Length))
+            //    break;
 
             queueToReturn.Enqueue(ConnectionClass.ConvertXYPositionToIndex(tempX, tempY));
 
@@ -300,7 +346,7 @@ public class CalvertAI : MonoBehaviour {
                         return ConnectionClass.ConvertXYPositionToIndex(tempX, tempY);
                     }
                 }
-                else if (IsInBoard(ConnectionClass.ConvertXYPositionToIndex(x - 1, y - 1), board.Length))
+                if (IsInBoard(ConnectionClass.ConvertXYPositionToIndex(x - 1, y - 1), board.Length))
                 {
                     if (board[ConnectionClass.ConvertXYPositionToIndex(x - 1, y - 1)] == 0)
                     {
@@ -311,10 +357,14 @@ public class CalvertAI : MonoBehaviour {
         }
 
         //3rd Direction, down
-        for (int currCount = 0, tempX = x, tempY = y; currCount < counts && board[ConnectionClass.ConvertXYPositionToIndex(tempX, tempY)] == opponentColor; ++currCount, ++tempY)
+        for (int currCount = 0, tempX = x, tempY = y; 
+            currCount < counts && 
+            IsInBoard(ConnectionClass.ConvertXYPositionToIndex(tempX, tempY), board.Length) && 
+            board[ConnectionClass.ConvertXYPositionToIndex(tempX, tempY)] == opponentColor; 
+            ++currCount, ++tempY)
         {
-            if (!IsInBoard(ConnectionClass.ConvertXYPositionToIndex(tempX, tempY), board.Length))
-                break;
+            //if (!IsInBoard(ConnectionClass.ConvertXYPositionToIndex(tempX, tempY), board.Length))
+            //    break;
 
             queueToReturn.Enqueue(ConnectionClass.ConvertXYPositionToIndex(tempX, tempY));
 
@@ -333,7 +383,7 @@ public class CalvertAI : MonoBehaviour {
                         return ConnectionClass.ConvertXYPositionToIndex(tempX, tempY);
                     }
                 }
-                else if (IsInBoard(ConnectionClass.ConvertXYPositionToIndex(x, y - 1), board.Length))
+                if (IsInBoard(ConnectionClass.ConvertXYPositionToIndex(x, y - 1), board.Length))
                 {
                     if (board[ConnectionClass.ConvertXYPositionToIndex(x, y - 1)] == 0)
                     {
@@ -344,10 +394,10 @@ public class CalvertAI : MonoBehaviour {
         }
 
         //4th direction, diagonal right to left
-        for (int currCount = 0, tempX = x, tempY = y; currCount < counts && board[ConnectionClass.ConvertXYPositionToIndex(tempX, tempY)] == opponentColor; ++currCount, --tempX, ++tempY)
+        for (int currCount = 0, tempX = x, tempY = y; currCount < counts && IsInBoard(ConnectionClass.ConvertXYPositionToIndex(tempX, tempY), board.Length) && board[ConnectionClass.ConvertXYPositionToIndex(tempX, tempY)] == opponentColor; ++currCount, --tempX, ++tempY)
         {
-            if (!IsInBoard(ConnectionClass.ConvertXYPositionToIndex(tempX, tempY), board.Length))
-                break;
+            //if (!IsInBoard(ConnectionClass.ConvertXYPositionToIndex(tempX, tempY), board.Length))
+            //    break;
 
             queueToReturn.Enqueue(ConnectionClass.ConvertXYPositionToIndex(tempX, tempY));
 
@@ -367,7 +417,7 @@ public class CalvertAI : MonoBehaviour {
                         return ConnectionClass.ConvertXYPositionToIndex(tempX, tempY);
                     }
                 }
-                else if (IsInBoard(ConnectionClass.ConvertXYPositionToIndex(x + 1, y - 1), board.Length))
+                if (IsInBoard(ConnectionClass.ConvertXYPositionToIndex(x + 1, y - 1), board.Length))
                 {
                     if (board[ConnectionClass.ConvertXYPositionToIndex(x + 1, y - 1)] == 0)
                     {
