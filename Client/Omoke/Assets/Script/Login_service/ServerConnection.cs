@@ -51,11 +51,11 @@ public class ServerConnection : MonoBehaviour {
     private DateTime currentTime = DateTime.Now;
     private DateTime targetTime = DateTime.Now;
     public bool receiveNewCurrentGamePacket = false;
-    CurrentGameInfo currentGame /*= new CurrentGameInfo()*/;
+    CurrentGameInfo currentGame;
+
+    CurrentGameInfo prevData;
 
     ConnectionStatus cts_connection_status = ConnectionStatus.NOT_CONNECTING;
-
-    string prevRawData;
 
     //Used to initialise objects
     private void Start()
@@ -93,21 +93,26 @@ public class ServerConnection : MonoBehaviour {
         }
     }
 
+    bool CheckIfDataIsValid(CurrentGameInfo checkThisData)
+    {
+        if (checkThisData.mapData.Length != 225)
+            return false;
+
+        return true;
+    }
+
     void GameRoomUpdate()
     {
         string tempstring = server.RecieveFromQueue();
         Debug.Log("GameRoomUpdate: " + tempstring);
         if(tempstring.Contains(PACKET_TYPE.GET_RAW_GAME_INFO.ToString()))
         {
-            try
-            {
-                server.TranslatePacketIntoGameInformation(tempstring, out currentGame);
-                prevRawData = tempstring;
-            }
-            catch(Exception e)
-            {
-                server.TranslatePacketIntoGameInformation(prevRawData, out currentGame);
-            }
+
+            server.TranslatePacketIntoGameInformation(tempstring, out currentGame);
+            if (CheckIfDataIsValid(currentGame))
+                CopyData(currentGame);
+            else
+                currentGame = prevData;
 
             receiveNewCurrentGamePacket = true;
             //Debug.Log(currentGame.theWinner + " is the winner");
@@ -177,15 +182,12 @@ public class ServerConnection : MonoBehaviour {
         }
         else if (tempstring.Contains(PACKET_TYPE.GET_RAW_GAME_INFO.ToString()))
         {
-            try
-            {
-                server.TranslatePacketIntoGameInformation(tempstring, out currentGame);
-                prevRawData = tempstring;
-            }
-            catch (Exception e)
-            {
-                server.TranslatePacketIntoGameInformation(prevRawData, out currentGame);
-            }
+
+            server.TranslatePacketIntoGameInformation(tempstring, out currentGame);
+            if (CheckIfDataIsValid(currentGame))
+                CopyData(currentGame);
+            else
+                currentGame = prevData;
 
             receiveNewCurrentGamePacket = true;
             //Debug.Log(currentGame.theWinner + " is the winner");
@@ -231,11 +233,24 @@ public class ServerConnection : MonoBehaviour {
         }
         while (!tempstring.Contains(PACKET_TYPE.GET_RAW_GAME_INFO.ToString()));
         server.TranslatePacketIntoGameInformation(tempstring, out currentGame);
+        if (CheckIfDataIsValid(currentGame))
+            CopyData(currentGame);
+        else
+            currentGame = prevData;
+
         receiveNewCurrentGamePacket = true;
         Debug.Log("GOT A PACKET OF GAME DATA");
         Debug.Log(currentGame.theWinner + " is the winner");
         Debug.Log(currentGame.isYourTurn + " isit your turn?");
         newTimersForGameUpdate();
+    }
+
+    void CopyData(CurrentGameInfo theGameInfo)
+    {
+        prevData.mapData = theGameInfo.mapData;
+        prevData.theWinner = theGameInfo.theWinner;
+        prevData.isYourTurn = theGameInfo.isYourTurn;
+        prevData.myIndexNumber = theGameInfo.myIndexNumber;
     }
 
     //Connect to server
@@ -270,6 +285,8 @@ public class ServerConnection : MonoBehaviour {
         PlayerPrefs.SetString("ServerIP", serverIP);
         PlayerPrefs.SetInt("ServerPort", portNumber);
         currentGame = server.CreateGameInformation();
+        CopyData(currentGame);
+
         if (showText)
             showText.StartCoroutine(showText.DisplayText("Connection established", 3));
     }

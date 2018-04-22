@@ -40,6 +40,7 @@ public class UpdateBoard : MonoBehaviour {
     void updateTheBoard()
     {
         int[] newMapData = server.GetMapData();
+        Debug.Log("THIS IS A TABLE COUNT : " + newMapData.Length);
         int myIndexNumber = server.MyNumber();
         foreach (Transform tile in transform)
         {
