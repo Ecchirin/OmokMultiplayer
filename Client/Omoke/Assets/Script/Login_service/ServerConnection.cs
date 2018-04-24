@@ -142,6 +142,7 @@ public class ServerConnection : MonoBehaviour {
         {
             tempstring = Unpack(tempstring);
             opponentName = tempstring;
+            secondPlayer = tempstring;
             opponentInRoom = true;
             Debug.Log("Opponent Joined the game:" + opponentName);
         }
@@ -149,9 +150,13 @@ public class ServerConnection : MonoBehaviour {
         {
             Debug.Log("Opponent Left the room: " + opponentName);
             opponentName = "";
+            isHost = true;
+            if (isHost)
+                firstPlayer = secondPlayer;
+            secondPlayer = "No player";
             opponentInRoom = false;
             opponentIsReady = false;
-            isHost = true;
+            
         }
         else if (tempstring.Contains(PACKET_TYPE.PLAYER_IS_READY.ToString()))
         {
@@ -292,7 +297,7 @@ public class ServerConnection : MonoBehaviour {
     }
 
     //Send set name to the server for recording
-    public void SendName(string PlayerPrefName)
+    public string SendName(string PlayerPrefName)
     {
         server.SendMessage(PACKET_TYPE.ASSIGN_NAME_PACKET, PlayerPrefs.GetString(PlayerPrefName, "Default001"));
         DateTime b = DateTime.Now.AddSeconds(3);
@@ -312,7 +317,9 @@ public class ServerConnection : MonoBehaviour {
         {
             Debug.Log(userName + "(In SendName)");
             PlayerPrefs.SetString("IGN", userName);
+            return userName;
         }
+        return "";
     }
 
     //Send current status to the other gameobject that needs server
@@ -377,6 +384,7 @@ public class ServerConnection : MonoBehaviour {
     {
         isHost = true;
         inRoom = true;
+        firstPlayer = userName;
         server.SendMessage(PACKET_TYPE.CREATE_NEW_ROOM, "I'm Creating a room");
     }
 
@@ -456,6 +464,8 @@ public class ServerConnection : MonoBehaviour {
         if (tempstring.Contains(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString()))
         {
             inRoom = true;
+            firstPlayer = tempstring;
+            secondPlayer = userName;
             tempstring = Unpack(tempstring);
             Debug.Log(tempstring + "(In JoinRoom)");
             opponentName = tempstring;
@@ -520,6 +530,7 @@ public class ServerConnection : MonoBehaviour {
     //When leaving room reset all booleans
     public void LeaveTheRoom()
     {
+        firstPlayer = secondPlayer = "No player";
         isSpectator = inRoom = isHost = inGame = opponentIsReady = opponentInRoom = false;
         server.SendMessage(PACKET_TYPE.LEAVE_ROOM, "I'm Leaving the room");
     }
@@ -547,6 +558,16 @@ public class ServerConnection : MonoBehaviour {
     public void ServerDestroy()
     {
         Destroy(this.gameObject);
+    }
+
+    public void SetGameRoomName(string gameRoomName)
+    {
+        goToGameRoom = gameRoomName;
+    }
+
+    public void SetWaitingRoomName(string waitingRoomName)
+    {
+        goToRoom = waitingRoomName;
     }
 
     private void newTimersForGameUpdate()

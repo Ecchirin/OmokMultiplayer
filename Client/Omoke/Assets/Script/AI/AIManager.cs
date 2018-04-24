@@ -14,6 +14,11 @@ public class AIManager : MonoBehaviour {
     // Use this for initialization
     void Start() {
         server = GameObject.FindGameObjectWithTag(serverServiceTagName).GetComponent<ServerConnection>();
+        if (server.isSpectator)
+        {
+            this.enabled = false;
+            return;
+        }
         if (PlayerPrefs.GetInt("Player1AI", 0) != 0)
         {
             GameObject newAI = Instantiate(prefabAI[PlayerPrefs.GetInt("Player1AI", 0) - 1]);
