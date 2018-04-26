@@ -217,7 +217,7 @@ public class ServerInterface : MonoBehaviour {
     }
 #endregion
 
-#region (Ready / Unready)
+#region Player (Ready / Unready) in room
     /// <summary>
     /// A function to tell the server that the player is ready.
     /// 플레이어에게 준비되었음을 서버에 알리는 함수.
@@ -380,6 +380,30 @@ public class ServerInterface : MonoBehaviour {
     public int GetMyIndex()
     {
         return GetComponent<ServerConnection>().MyNumber();
+    }
+#endregion
+
+#region Enable / Disable / Get Active Renju Rules
+    /// <summary>
+    /// Set Renju rules active or not active (true - active, false - not active)
+    /// Renju 규칙을 활성화 또는 비활성화로 설정합니다 (true - active, false - not active).
+    /// </summary>
+    public void SetRenjuRules(bool active)
+    {
+        GetComponent<ServerConnection>().SetRenjuRules(active);
+    }
+
+    /// <summary>
+    /// Get if Renju rules are active or not
+    /// Renju 규칙이 활성화되었는지 여부 확인
+    /// </summary>
+    /// <returns>
+    /// Returns true for active and false for not active
+    /// 활성 상태이면 true를 반환하고 비활성 상태이면 false를 반환합니다.
+    /// </returns>
+    public bool GetRenjuRules()
+    {
+        return GetComponent<ServerConnection>().GetRenjuRules();
     }
 #endregion
 }
