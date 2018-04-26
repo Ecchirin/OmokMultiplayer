@@ -328,6 +328,9 @@ namespace TCPServer
         GET_OPPONENT_MOVE,
         GET_MAP_DATA,
 
+        SET_RENJU_RULES,
+        UNSET_RENJU_RULES,
+
         OPPONENT_DISCONNECTED,
 
         ERROR_PACKET,

@@ -6,6 +6,7 @@ using System.Threading;
 using TCPServer;
 using System.Collections.Generic;
 using System.Web;
+using System.Linq;
 
 namespace OmokServer
 {
@@ -39,15 +40,17 @@ namespace OmokServer
 
         Queue<int> getList = new Queue<int>();
 
+        bool isRenjuRules = true;
+
         //List of spectators
-        List<ConnectionThread> listOfSpectators = new List<ConnectionThread>();
+        public List<ConnectionThread> listOfSpectators = new List<ConnectionThread>();
 
         public void AddNewSpectator(ConnectionThread newSpectator)
         {
             listOfSpectators.Add(newSpectator);
         }
 
-        public GameInformation(ConnectionThread theHost, ConnectionThread theOpponent, bool aiGame = false)
+        public GameInformation(ConnectionThread theHost, ConnectionThread theOpponent, bool aiGame = false, bool setRenju = true)
         {
             thePlayers = new OngoingGame(theHost, theOpponent);
             GenerateEmptyMap();
@@ -56,6 +59,8 @@ namespace OmokServer
                 InitPlayers();
             else
                 InitAI();
+
+            isRenjuRules = setRenju;
 
             Console.WriteLine("INITED");
         }
@@ -111,53 +116,70 @@ namespace OmokServer
             x = y = 0;
             ConnectionClass.ConvertArrayPositionToXY(arrayIndex, out x, out y);
 
-
-            if (CheckPlacementOfMap(x, y) == 1)
+            if (isRenjuRules)
             {
-                GetAllBlackConnected(x, y);
-
-                if (ForbiddenPointFinder.IsOverline(x, y, mapData))
+                if (CheckPlacementOfMap(x, y) == 1)
                 {
-                    Console.WriteLine("Forbidden Move");
-                    theWinner = 2;
-                    return true;
-                }
+                    GetAllBlackConnected(x, y);
 
-                if (getList.Count > 0)
-                {
-                    int x1, y1;
-                    x1 = y1 = 0;
-
-                    while (getList.Count > 0)
+                    if (ForbiddenPointFinder.IsOverline(x, y, mapData))
                     {
-                        ConnectionClass.ConvertArrayPositionToXY(getList.Dequeue(), out x1, out y1);
-                        Console.WriteLine("DEQUEUING LIST, X1 = " + x1 + " Y1 = " + y1);
+                        Console.WriteLine("Forbidden Move @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+                        theWinner = 2;
+                        return true;
+                    }
 
-                        if (ForbiddenPointFinder.IsDoubleFour(x1, y1, mapData) || ForbiddenPointFinder.IsDoubleThree(x1, y1, mapData))
+                    if (getList.Count > 0)
+                    {
+                        int x1, y1;
+                        x1 = y1 = 0;
+
+                        while (getList.Count > 0)
                         {
-                            Console.WriteLine("Forbidden Move");
+                            ConnectionClass.ConvertArrayPositionToXY(getList.Dequeue(), out x1, out y1);
+                            Console.WriteLine("DEQUEUING LIST, X1 = " + x1 + " Y1 = " + y1);
+
+                            if (ForbiddenPointFinder.IsDoubleFour(x1, y1, mapData) || ForbiddenPointFinder.IsDoubleThree(x1, y1, mapData))
+                            {
+                                Console.WriteLine("Forbidden Move @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+                                theWinner = 2;
+                                return true;
+                            }
+                        }
+
+                    }
+                    else
+                    {
+                        if (ForbiddenPointFinder.IsDoubleFour(x, y, mapData) || ForbiddenPointFinder.IsDoubleThree(x, y, mapData))
+                        {
+                            Console.WriteLine("Forbidden Move @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
                             theWinner = 2;
                             return true;
                         }
                     }
-
                 }
-                else
+
+                if (ForbiddenPointFinder.IsFive(x, y, mapData, CheckPlacementOfMap(x, y)))
                 {
-                    if (ForbiddenPointFinder.IsDoubleFour(x, y, mapData) || ForbiddenPointFinder.IsDoubleThree(x, y, mapData))
-                    {
-                        Console.WriteLine("Forbidden Move");
-                        theWinner = 2;
-                        return true;
-                    }
+                    Console.WriteLine("5 in a row found @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+                    theWinner = CheckPlacementOfMap(x, y);
+                    return true;
                 }
             }
-
-            if (ForbiddenPointFinder.IsFive(x, y, mapData, CheckPlacementOfMap(x, y)))
+            else
             {
-                Console.WriteLine("5 in a row found");
-                theWinner = CheckPlacementOfMap(x, y);
-                return true;
+                if (ForbiddenPointFinder.IsFive(x, y, mapData, CheckPlacementOfMap(x, y)))
+                {
+                    Console.WriteLine("5 in a row found @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+                    theWinner = CheckPlacementOfMap(x, y);
+                    return true;
+                }
+                else if (ForbiddenPointFinder.IsOverline(x, y, mapData))
+                {
+                    Console.WriteLine("Forbidden Move @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+                    theWinner = 2;
+                    return true;
+                }
             }
             return false;
         }
@@ -306,21 +328,26 @@ namespace OmokServer
 
         public void SendTurnToSpectators(byte[] data)
         {
-            foreach (ConnectionThread iter in listOfSpectators)
+            if (listOfSpectators.Any())
             {
-                if (iter == null)
-                    continue;
-                do
+                foreach (ConnectionThread iter in listOfSpectators)
                 {
-                    iter.ns.Write(data, 0, data.Length);
+                    if (iter == null)
+                        continue;
+                    do
+                    {
+                        iter.ns.Write(data, 0, data.Length);
+                    }
+                    while (!iter.ns.CanWrite);
                 }
-                while (!iter.ns.CanWrite);
             }
         }
 
         public void ForceUpdate()
         {
             byte[] data = new byte[1024];
+
+            Console.WriteLine("TheWinner = " + theWinner);
 
             //Send to host first
             data = new byte[1024];
@@ -516,7 +543,7 @@ namespace OmokServer
         /// </summary>
 
         //Stuff for Games
-        public bool inLobby, isSpectator, isReady, inGame;
+        public bool inLobby, isSpectator, isReady, inGame, hostMadeRenju;
         public GameInformation gameSession;
 
         //Identification
@@ -539,6 +566,7 @@ namespace OmokServer
             isReady = false;
             gameSession = null;
             inGame = false;
+            hostMadeRenju = true;
 
             Console.WriteLine("New client accepted: {0} active connections",
                               connections);
@@ -722,6 +750,16 @@ namespace OmokServer
                     {
                         isReady = false;
                         ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.PLAYER_UNREADY);
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.SET_RENJU_RULES.ToString()))
+                    {
+                        ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.SET_RENJU_RULES);
+                        hostMadeRenju = true;
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.UNSET_RENJU_RULES.ToString()))
+                    {
+                        ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.UNSET_RENJU_RULES);
+                        hostMadeRenju = false;
                     }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.START_GAME.ToString()))
                     {
@@ -939,7 +977,7 @@ namespace OmokServer
                                 thePacketHeader = PACKET_TYPE.START_GAME_SUCCESS;
                                 listOfGamesWaiting.Remove(iter);
                                 iter.theHost.inGame = iter.theOpponent.inGame = true;
-                                iter.theHost.gameSession = iter.theOpponent.gameSession = ThreadedTCPServer.StartNewGame(iter.theHost, iter.theOpponent, iter.isAiGame);
+                                iter.theHost.gameSession = iter.theOpponent.gameSession = ThreadedTCPServer.StartNewGame(iter.theHost, iter.theOpponent, iter.isAiGame, theSender.hostMadeRenju);
                                 theReceiver.isReady = false;
                                 theSender.isReady = false;
 
@@ -1258,9 +1296,9 @@ namespace OmokServer
         }
 
 
-        public static GameInformation StartNewGame(ConnectionThread theHost, ConnectionThread theOpponent, bool isAiGame = false)
+        public static GameInformation StartNewGame(ConnectionThread theHost, ConnectionThread theOpponent, bool isAiGame = false, bool setRenju = true)
         {
-            GameInformation newGame = new GameInformation(theHost, theOpponent, isAiGame);
+            GameInformation newGame = new GameInformation(theHost, theOpponent, isAiGame, setRenju);
             listOfOngoingGames.Add(newGame);
             return newGame;
         }
@@ -1269,21 +1307,33 @@ namespace OmokServer
         {
             ThreadedTCPServer.SendMessageToOthers(theClient, PACKET_TYPE.OPPONENT_DISCONNECTED);
 
-            //foreach (GameInformation iter in listOfOngoingGames)
-            //{
-            //    if (iter.thePlayers.theHost.clientName == theClient.clientName)
-            //    {
-            //        iter.thePlayers.theOpponent.inLobby = true;
-            //        listOfOngoingGames.Remove(iter);
-            //        break;
-            //    }
-            //    else if (iter.thePlayers.theOpponent.clientName == theClient.clientName)
-            //    {
-            //        iter.thePlayers.theHost.inLobby = true;
-            //        listOfOngoingGames.Remove(iter);
-            //        break;
-            //    }
-            //}
+            foreach (GameInformation iter in listOfOngoingGames)
+            {
+                //if (iter.thePlayers.theHost.clientName == theClient.clientName)
+                //{
+                //    iter.thePlayers.theOpponent.inLobby = true;
+                //    listOfOngoingGames.Remove(iter);
+                //    break;
+                //}
+                //else if (iter.thePlayers.theOpponent.clientName == theClient.clientName)
+                //{
+                //    iter.thePlayers.theHost.inLobby = true;
+                //    listOfOngoingGames.Remove(iter);
+                //    break;
+                //}
+
+                if (iter.listOfSpectators.Any())
+                {
+                    foreach (ConnectionThread getName in iter.listOfSpectators)
+                    {
+                        if (getName.clientName == theClient.clientName)
+                        {
+                            iter.listOfSpectators.Remove(getName);
+                            break;
+                        }
+                    }
+                }
+            }
 
             foreach (ConnectionThread iter in listOfConnections)
             {
