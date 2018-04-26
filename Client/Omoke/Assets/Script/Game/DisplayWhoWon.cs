@@ -32,14 +32,23 @@ public class DisplayWhoWon : MonoBehaviour {
     {
         if (server == null || server.GetWinner() == 0)
             return;
+
+        if(server.GetWinner() == 1)
+        {
+            this.GetComponent<TextMeshProUGUI>().text = server.GetPlayerOne() + " has won the match";
+        }
+        else if (server.GetWinner() == 2)
+        {
+            this.GetComponent<TextMeshProUGUI>().text = server.GetPlayerTwo() + " has won the match";
+        }
         if (server.GetWinner() != server.MyNumber())
         {
-            this.GetComponent<TextMeshProUGUI>().text = server.getOpponentName() + " has won the match";
+            //this.GetComponent<TextMeshProUGUI>().text = server.GetOpponentName() + " has won the match";
             this.GetComponent<TextMeshProUGUI>().color = Color.red;
         }
         else
         {
-            this.GetComponent<TextMeshProUGUI>().text = server.userName + " has won the match";
+            //this.GetComponent<TextMeshProUGUI>().text = server.userName + " has won the match";
             this.GetComponent<TextMeshProUGUI>().color = Color.green;
         }
         this.enabled = false;

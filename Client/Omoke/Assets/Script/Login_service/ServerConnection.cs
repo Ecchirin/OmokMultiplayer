@@ -37,6 +37,7 @@ public class ServerConnection : MonoBehaviour {
     public bool opponentInRoom = false;
     public bool opponentIsReady = false;
     public bool isHost = false;
+    bool renjuRules = true;
     //Spectator
     public bool isSpectator = false;
     string firstPlayer = "";
@@ -118,7 +119,7 @@ public class ServerConnection : MonoBehaviour {
             //Debug.Log(currentGame.theWinner + " is the winner");
             //Debug.Log("GOT A PACKET OF GAME DATA");
             //Debug.Log(currentGame.isYourTurn + " isit your turn?");
-            newTimersForGameUpdate();
+            NewTimersForGameUpdate();
         }
         else if (tempstring.Contains(PACKET_TYPE.OPPONENT_DISCONNECTED.ToString()))
         {
@@ -195,9 +196,14 @@ public class ServerConnection : MonoBehaviour {
                 currentGame = prevData;
 
             receiveNewCurrentGamePacket = true;
-            //Debug.Log(currentGame.theWinner + " is the winner");
-            //Debug.Log("GOT A PACKET OF GAME DATA");
-            //Debug.Log(currentGame.isYourTurn + " isit your turn?");
+        }
+        else if (tempstring.Contains(PACKET_TYPE.UNSET_RENJU_RULES.ToString()))
+        {
+            renjuRules = false;
+        }
+        else if (tempstring.Contains(PACKET_TYPE.SET_RENJU_RULES.ToString()))
+        {
+            renjuRules = true;
         }
     }
 
@@ -247,7 +253,7 @@ public class ServerConnection : MonoBehaviour {
         Debug.Log("GOT A PACKET OF GAME DATA");
         Debug.Log(currentGame.theWinner + " is the winner");
         Debug.Log(currentGame.isYourTurn + " isit your turn?");
-        newTimersForGameUpdate();
+        NewTimersForGameUpdate();
     }
 
     void CopyData(CurrentGameInfo theGameInfo)
@@ -511,7 +517,7 @@ public class ServerConnection : MonoBehaviour {
         }
     }
 
-    public string getOpponentName()
+    public string GetOpponentName()
     {
         return opponentName;
     }
@@ -573,14 +579,18 @@ public class ServerConnection : MonoBehaviour {
     public void SetRenjuRules(bool active)
     {
         //Set some raiju rules here
+        if (active)
+            server.SendMessage(PACKET_TYPE.SET_RENJU_RULES, "Setting renju rules");
+        else
+            server.SendMessage(PACKET_TYPE.UNSET_RENJU_RULES, "Unsetting renju rules");
     }
 
     public bool GetRenjuRules()
     {
-        return false;
+        return renjuRules;
     }
 
-    private void newTimersForGameUpdate()
+    private void NewTimersForGameUpdate()
     {
         currentTime = DateTime.Now;
         targetTime = DateTime.Now.AddSeconds(timerCountDown);
