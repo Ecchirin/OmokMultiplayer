@@ -739,6 +739,7 @@ namespace OmokServer
                         isReady = false;
                         inGame = false;
                         isSpectator = false;
+                        hostMadeRenju = true;
 
                     }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.PLAYER_IS_READY.ToString()))
@@ -751,15 +752,19 @@ namespace OmokServer
                         isReady = false;
                         ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.PLAYER_UNREADY);
                     }
-                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.SET_RENJU_RULES.ToString()))
-                    {
-                        ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.SET_RENJU_RULES);
-                        hostMadeRenju = true;
-                    }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.UNSET_RENJU_RULES.ToString()))
                     {
                         ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.UNSET_RENJU_RULES);
                         hostMadeRenju = false;
+                        data = Encoding.ASCII.GetBytes(PACKET_TYPE.UNSET_RENJU_RULES.ToString() + ":" + hostMadeRenju);
+                        ns.Write(data, 0, data.Length);
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.SET_RENJU_RULES.ToString()))
+                    {
+                        ThreadedTCPServer.SendMessageToOthers(this, PACKET_TYPE.SET_RENJU_RULES);
+                        hostMadeRenju = true;
+                        data = Encoding.ASCII.GetBytes(PACKET_TYPE.SET_RENJU_RULES.ToString() + ":" + hostMadeRenju);
+                        ns.Write(data, 0, data.Length);
                     }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.START_GAME.ToString()))
                     {
@@ -958,6 +963,7 @@ namespace OmokServer
                             ThreadedTCPServer.CreateNewRoom(theReceiver);
                             theReceiver.isReady = false;
                             theSender.isReady = false;
+                            theReceiver.hostMadeRenju = theSender.hostMadeRenju = true;
                         }
                         else if (thePacketHeader == PACKET_TYPE.OPPONENT_DISCONNECTED)
                         {
@@ -999,6 +1005,7 @@ namespace OmokServer
                             ThreadedTCPServer.CreateNewRoom(theReceiver);
                             theReceiver.isReady = false;
                             theSender.isReady = false;
+                            theReceiver.hostMadeRenju = theSender.hostMadeRenju = true;
                         }
                         else if (thePacketHeader == PACKET_TYPE.OPPONENT_DISCONNECTED)
                         {
@@ -1037,6 +1044,7 @@ namespace OmokServer
                         listOfHostedRooms.Remove(iter);
                         theSender.inLobby = true;
                         theSender.isReady = false;
+                        theSender.hostMadeRenju = true;
                         return;
                     }
                 }
@@ -1055,6 +1063,16 @@ namespace OmokServer
                 {
                     data = Encoding.ASCII.GetBytes(PACKET_TYPE.LEAVE_ROOM.ToString() + ":" + theSender.clientName);
                     Console.WriteLine(theSender.clientName + " Left the room of " + theReceiver.clientName);
+                }
+                else if (thePacketHeader == PACKET_TYPE.UNSET_RENJU_RULES)
+                {
+                    data = Encoding.ASCII.GetBytes(PACKET_TYPE.UNSET_RENJU_RULES.ToString() + ":" + theSender.hostMadeRenju);
+                    Console.WriteLine(theSender.clientName + " UnSet Renju Rules " + theReceiver.clientName);
+                }
+                else if (thePacketHeader == PACKET_TYPE.SET_RENJU_RULES)
+                {
+                    data = Encoding.ASCII.GetBytes(PACKET_TYPE.SET_RENJU_RULES.ToString() + ":" + theSender.hostMadeRenju);
+                    Console.WriteLine(theSender.clientName + " Set Renju Rules " + theReceiver.clientName);
                 }
                 else if (thePacketHeader == PACKET_TYPE.OPPONENT_DISCONNECTED)
                 {
@@ -1306,6 +1324,15 @@ namespace OmokServer
         public static void ClientDisconnected(ConnectionThread theClient)
         {
             ThreadedTCPServer.SendMessageToOthers(theClient, PACKET_TYPE.OPPONENT_DISCONNECTED);
+
+            foreach (ConnectionThread iter in listOfHostedRooms)
+            {
+                if (iter.clientName == theClient.clientName)
+                {
+                    listOfHostedRooms.Remove(iter);
+                    break;
+                }
+            }
 
             foreach (GameInformation iter in listOfOngoingGames)
             {
