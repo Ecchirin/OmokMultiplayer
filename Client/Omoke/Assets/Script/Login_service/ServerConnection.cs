@@ -570,6 +570,16 @@ public class ServerConnection : MonoBehaviour {
         goToRoom = waitingRoomName;
     }
 
+    public void SetRenjuRules(bool active)
+    {
+        //Set some raiju rules here
+    }
+
+    public bool GetRenjuRules()
+    {
+        return false;
+    }
+
     private void newTimersForGameUpdate()
     {
         currentTime = DateTime.Now;
