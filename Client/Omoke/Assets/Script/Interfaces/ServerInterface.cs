@@ -60,6 +60,17 @@ public class ServerInterface : MonoBehaviour {
 
     /// <summary>
     /// <para>
+    /// Please enter the names of the scenes before starting the game.
+    /// </para>
+    /// <para>
+    /// 게임을 시작하기 전에 장면의 이름을 입력하십시오.
+    /// </para>
+    /// </summary>
+    [SerializeField]
+    string roomSelectSceneName = "The name of your Scene";
+
+    /// <summary>
+    /// <para>
     /// This are just some variables for debugging while unity is running.
     /// </para>
     /// <para>
@@ -117,6 +128,7 @@ public class ServerInterface : MonoBehaviour {
         GetComponent<ServerConnection>().SetWaitingRoomName(waitingRoomSceneName);
         GetComponent<ServerConnection>().SetGameRoomName(gameRoomSceneName);
         GetComponent<ServerConnection>().SetServerDisconnectedName(disconnectedRoomSceneName);
+        GetComponent<ServerConnection>().SetRoomSelectName(roomSelectSceneName);
     }
 
     // Update is called once per frame

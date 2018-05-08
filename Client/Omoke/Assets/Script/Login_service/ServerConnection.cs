@@ -27,6 +27,8 @@ public class ServerConnection : MonoBehaviour {
     [SerializeField]
     string goToRoom = "Room";
     [SerializeField]
+    string goToRoomSelection = "Room menu";
+    [SerializeField]
     string goToGameRoom = "Game Room";
     public string userName = "";
     public string opponentName = "";
@@ -124,7 +126,7 @@ public class ServerConnection : MonoBehaviour {
         else if (tempstring.Contains(PACKET_TYPE.OPPONENT_DISCONNECTED.ToString()))
         {
             LeaveTheRoom();
-            this.GetComponent<SceneChange>().ChangeScene("Room menu");
+            this.GetComponent<SceneChange>().ChangeScene(goToRoomSelection);
         }
         if(isHost)
             currentTime = DateTime.Now;
@@ -184,7 +186,7 @@ public class ServerConnection : MonoBehaviour {
         else if (tempstring.Contains(PACKET_TYPE.START_GAME_FAILURE.ToString()))
         {
             LeaveTheRoom();
-            this.GetComponent<SceneChange>().ChangeScene("Room menu");
+            this.GetComponent<SceneChange>().ChangeScene(goToRoomSelection);
         }
         else if (tempstring.Contains(PACKET_TYPE.GET_RAW_GAME_INFO.ToString()))
         {
@@ -385,6 +387,7 @@ public class ServerConnection : MonoBehaviour {
         Debug.Log(currentGame.myIndexNumber + " is my number");
         return currentGame.myIndexNumber;
     }
+
     //Create a room with your name
     public void CreateRoom()
     {
@@ -579,6 +582,11 @@ public class ServerConnection : MonoBehaviour {
     public void SetServerDisconnectedName(string disconnectedRoomName)
     {
         lostConnectScene = disconnectedRoomName;
+    }
+
+    public void SetRoomSelectName(string roomSelectName)
+    {
+        goToRoomSelection = roomSelectName;
     }
 
     public void SetRenjuRules(bool active)
