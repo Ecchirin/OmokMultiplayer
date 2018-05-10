@@ -1,3 +1,4 @@
+// 역순일때 체크가 안됨...
 bool won(std::vector<std::vector<data_t>> &data, int color)
 {
     //check each row:
