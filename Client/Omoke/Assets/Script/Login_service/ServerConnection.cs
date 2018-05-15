@@ -473,9 +473,9 @@ public class ServerConnection : MonoBehaviour {
         if (tempstring.Contains(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString()))
         {
             inRoom = true;
-            firstPlayer = tempstring;
             secondPlayer = userName;
             tempstring = Unpack(tempstring);
+            firstPlayer = tempstring;
             Debug.Log(tempstring + "(In JoinRoom)");
             opponentName = tempstring;
             this.gameObject.GetComponent<SceneChange>().ChangeScene(goToRoom);

@@ -20,6 +20,7 @@ public class ActivateRenju : MonoBehaviour {
             Debug.LogError("This object cannot find server: " + this.name);
             this.enabled = false;
         }
+        activateSign.SetActive(true);
     }
 	
 	// Update is called once per frame
