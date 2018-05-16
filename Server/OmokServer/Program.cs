@@ -168,16 +168,16 @@ namespace OmokServer
             }
             else
             {
-                if (ForbiddenPointFinder.IsFive(x, y, mapData, CheckPlacementOfMap(x, y)))
+                if (ForbiddenPointFinder.IsOverline(x, y, mapData))
                 {
-                    Console.WriteLine("5 in a row found @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+                    Console.WriteLine("No Rules Overline win");
                     theWinner = CheckPlacementOfMap(x, y);
                     return true;
                 }
-                else if (ForbiddenPointFinder.IsOverline(x, y, mapData))
+                if (ForbiddenPointFinder.IsFive(x, y, mapData, CheckPlacementOfMap(x, y)))
                 {
-                    Console.WriteLine("Forbidden Move @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
-                    theWinner = 2;
+                    Console.WriteLine("No rules 5 in a row win");
+                    theWinner = CheckPlacementOfMap(x, y);
                     return true;
                 }
             }
