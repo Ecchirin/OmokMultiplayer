@@ -38,6 +38,8 @@ namespace OmokServer
         public OngoingGame thePlayers;
         int theWinner = 0;
 
+        int playerOnePicture = 0, playerTwoPicture = 0;
+
         Queue<int> getList = new Queue<int>();
 
         bool isRenjuRules = true;
@@ -50,7 +52,7 @@ namespace OmokServer
             listOfSpectators.Add(newSpectator);
         }
 
-        public GameInformation(ConnectionThread theHost, ConnectionThread theOpponent, bool aiGame = false, bool setRenju = true)
+        public GameInformation(ConnectionThread theHost, ConnectionThread theOpponent, bool aiGame = false, bool setRenju = true, int playerOne = 0, int playerTwo = 0)
         {
             thePlayers = new OngoingGame(theHost, theOpponent);
             GenerateEmptyMap();
@@ -61,8 +63,19 @@ namespace OmokServer
                 InitAI();
 
             isRenjuRules = setRenju;
-
+            playerOnePicture = playerOne;
+            playerTwoPicture = playerTwo;
             Console.WriteLine("INITED");
+        }
+
+        public int GetPlayerOnePicture()
+        {
+            return playerOnePicture;
+        }
+
+        public int GetPlayerTwoPicture()
+        {
+            return playerTwoPicture;
         }
 
         int CheckPlacementOfMap(int x, int y)
@@ -650,6 +663,14 @@ namespace OmokServer
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.FORCED_UPDATE.ToString()))
                     {
                         gameSession.ForceUpdate();
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.GET_PLAYER_ONE_PICTURE.ToString()))
+                    {
+                        gameSession.GetPlayerOnePicture();
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.GET_PLAYER_TWO_PICTURE.ToString()))
+                    {
+                        gameSession.GetPlayerTwoPicture();
                     }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.JOIN_ROOM_SPECTATE.ToString()))
                     {

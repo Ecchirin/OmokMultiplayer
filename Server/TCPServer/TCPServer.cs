@@ -331,6 +331,10 @@ namespace TCPServer
         SET_RENJU_RULES,
         UNSET_RENJU_RULES,
 
+        GET_PLAYER_ONE_PICTURE,
+        GET_PLAYER_TWO_PICTURE,
+        SET_PICTURE,
+
         OPPONENT_DISCONNECTED,
 
         ERROR_PACKET,
