@@ -568,6 +568,8 @@ namespace OmokServer
         public TcpClient client;
         public NetworkStream ns;
 
+        public int myPicture = 0;
+
         public void StartConnection()
         {
             client = threadListener.AcceptTcpClient();
@@ -719,6 +721,10 @@ namespace OmokServer
                         inGame = false;
                         isSpectator = false;
                         ThreadedTCPServer.CreateAIGame(this);
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.SET_PICTURE.ToString()))
+                    {
+                        myPicture = Int32.Parse(fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":") + 1));
                     }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.JOIN_ROOM.ToString()))
                     {
@@ -1004,7 +1010,7 @@ namespace OmokServer
                                 thePacketHeader = PACKET_TYPE.START_GAME_SUCCESS;
                                 listOfGamesWaiting.Remove(iter);
                                 iter.theHost.inGame = iter.theOpponent.inGame = true;
-                                iter.theHost.gameSession = iter.theOpponent.gameSession = ThreadedTCPServer.StartNewGame(iter.theHost, iter.theOpponent, iter.isAiGame, theSender.hostMadeRenju);
+                                iter.theHost.gameSession = iter.theOpponent.gameSession = ThreadedTCPServer.StartNewGame(iter.theHost, iter.theOpponent, iter.isAiGame, theSender.hostMadeRenju, iter.theHost.myPicture, iter.theOpponent.myPicture);
                                 theReceiver.isReady = false;
                                 theSender.isReady = false;
 
@@ -1041,7 +1047,7 @@ namespace OmokServer
                             {
                                 thePacketHeader = PACKET_TYPE.START_GAME_SUCCESS;
                                 listOfGamesWaiting.Remove(iter);
-                                ThreadedTCPServer.StartNewGame(iter.theHost, iter.theOpponent, iter.isAiGame);
+                                ThreadedTCPServer.StartNewGame(iter.theHost, iter.theOpponent, iter.isAiGame,  iter.theHost.hostMadeRenju, iter.theHost.myPicture, iter.theOpponent.myPicture);
                                 theReceiver.isReady = false;
                                 theSender.isReady = false;
 
@@ -1335,13 +1341,13 @@ namespace OmokServer
         }
 
 
-        public static GameInformation StartNewGame(ConnectionThread theHost, ConnectionThread theOpponent, bool isAiGame = false, bool setRenju = true)
+        public static GameInformation StartNewGame(ConnectionThread theHost, ConnectionThread theOpponent, bool isAiGame = false, bool setRenju = true, int playerOne = 0, int playerTwo = 0)
         {
-            GameInformation newGame = new GameInformation(theHost, theOpponent, isAiGame, setRenju);
+            GameInformation newGame = new GameInformation(theHost, theOpponent, isAiGame, setRenju, playerOne, playerTwo);
             listOfOngoingGames.Add(newGame);
             return newGame;
         }
-
+        
         public static void ClientDisconnected(ConnectionThread theClient)
         {
             ThreadedTCPServer.SendMessageToOthers(theClient, PACKET_TYPE.OPPONENT_DISCONNECTED);
