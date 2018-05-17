@@ -569,6 +569,7 @@ namespace OmokServer
         public NetworkStream ns;
 
         public int myPicture = 0;
+        public int aiPicture = 1;
 
         public void StartConnection()
         {
@@ -725,6 +726,10 @@ namespace OmokServer
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.SET_PICTURE.ToString()))
                     {
                         myPicture = Int32.Parse(fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":") + 1));
+                    }
+                    else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.SET_AI_PICTURE.ToString()))
+                    {
+                        aiPicture = Int32.Parse(fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":") + 1));
                     }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.JOIN_ROOM.ToString()))
                     {
@@ -1010,7 +1015,7 @@ namespace OmokServer
                                 thePacketHeader = PACKET_TYPE.START_GAME_SUCCESS;
                                 listOfGamesWaiting.Remove(iter);
                                 iter.theHost.inGame = iter.theOpponent.inGame = true;
-                                iter.theHost.gameSession = iter.theOpponent.gameSession = ThreadedTCPServer.StartNewGame(iter.theHost, iter.theOpponent, iter.isAiGame, theSender.hostMadeRenju, iter.theHost.myPicture, iter.theOpponent.myPicture);
+                                iter.theHost.gameSession = iter.theOpponent.gameSession = ThreadedTCPServer.StartNewGame(iter.theHost, iter.theOpponent, iter.isAiGame, theSender.hostMadeRenju, iter.theHost.myPicture, (iter.isAiGame == true ? iter.theHost.aiPicture : iter.theOpponent.myPicture));
                                 theReceiver.isReady = false;
                                 theSender.isReady = false;
 
@@ -1047,7 +1052,7 @@ namespace OmokServer
                             {
                                 thePacketHeader = PACKET_TYPE.START_GAME_SUCCESS;
                                 listOfGamesWaiting.Remove(iter);
-                                ThreadedTCPServer.StartNewGame(iter.theHost, iter.theOpponent, iter.isAiGame,  iter.theHost.hostMadeRenju, iter.theHost.myPicture, iter.theOpponent.myPicture);
+                                ThreadedTCPServer.StartNewGame(iter.theHost, iter.theOpponent, iter.isAiGame, iter.theHost.hostMadeRenju, iter.theHost.myPicture, (iter.isAiGame == true ? iter.theHost.aiPicture : iter.theOpponent.myPicture));
                                 theReceiver.isReady = false;
                                 theSender.isReady = false;
 
