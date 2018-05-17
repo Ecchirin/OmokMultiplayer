@@ -334,6 +334,7 @@ namespace TCPServer
         GET_PLAYER_ONE_PICTURE,
         GET_PLAYER_TWO_PICTURE,
         SET_PICTURE,
+        SET_AI_PICTURE,
 
         OPPONENT_DISCONNECTED,
 

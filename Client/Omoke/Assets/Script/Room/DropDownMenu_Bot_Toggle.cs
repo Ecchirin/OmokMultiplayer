@@ -44,6 +44,12 @@ public class DropDownMenu_Bot_Toggle : MonoBehaviour {
         if (dropDownMenu == null || readyOrNot == null)
             return;
 
+        if(server.roomReset)
+        {
+            dropDownMenu.value = 0;
+            server.roomReset = false;
+        }
+
         if(currentValue != dropDownMenu.value)
         {
             currentValue = dropDownMenu.value;
@@ -54,9 +60,13 @@ public class DropDownMenu_Bot_Toggle : MonoBehaviour {
                     server.UnSetAIGame();
                     PlayerPrefs.SetInt("AIGAME", 0);
                     PlayerPrefs.SetInt("Player2AI", 0);
+                    server.SetAIPicture(0);
                 }
                 else
+                {
                     PlayerPrefs.SetInt("Player1AI", 0);
+                    server.SetPlayerPicture(currentValue);
+                }
                 readyOrNot.SetActive(false);
                 if(readyBtn != null && cancelBtn != null)
                 {
@@ -74,20 +84,19 @@ public class DropDownMenu_Bot_Toggle : MonoBehaviour {
                     server.SetAIGame();
                     PlayerPrefs.SetInt("AIGAME", 1);
                     PlayerPrefs.SetInt("Player2AI", currentValue);
+                    server.SetAIPicture(currentValue);
                 }
                 else
+                {
                     PlayerPrefs.SetInt("Player1AI", currentValue);
-
-                //else
-                //{
+                    server.SetPlayerPicture(currentValue);
+                }
                 readyOrNot.SetActive(true);
-                //}
                 //Send a packet to server to tell it to be ready
                 if (readyBtn != null && cancelBtn != null)
                 {
                     readyBtn.SetActive(false);
                     cancelBtn.SetActive(false);
-                    //string name = dropDownMenu.options[1].text;
                 }
                 if (server != null && !secondPlayer)
                     server.RoomSetReady(true);

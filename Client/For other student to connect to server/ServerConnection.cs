@@ -40,6 +40,12 @@ public class ServerConnection : MonoBehaviour {
     public bool opponentIsReady = false;
     public bool isHost = false;
     bool renjuRules = true;
+    public bool roomReset = false;
+
+    //Room to game
+    int playerOneImageNumber = 0;
+    int playerTwoImageNumber = 0;
+
     //Spectator
     public bool isSpectator = false;
     string firstPlayer = "";
@@ -118,9 +124,6 @@ public class ServerConnection : MonoBehaviour {
                 currentGame = prevData;
 
             receiveNewCurrentGamePacket = true;
-            //Debug.Log(currentGame.theWinner + " is the winner");
-            //Debug.Log("GOT A PACKET OF GAME DATA");
-            //Debug.Log(currentGame.isYourTurn + " isit your turn?");
             NewTimersForGameUpdate();
         }
         else if (tempstring.Contains(PACKET_TYPE.OPPONENT_DISCONNECTED.ToString()))
@@ -147,6 +150,8 @@ public class ServerConnection : MonoBehaviour {
             opponentName = tempstring;
             secondPlayer = tempstring;
             opponentInRoom = true;
+            roomReset = true;
+            SetPlayerPicture(0);
             Debug.Log("Opponent Joined the game:" + opponentName);
         }
         else if(tempstring.Contains(PACKET_TYPE.LEAVE_ROOM.ToString()) || tempstring.Contains(PACKET_TYPE.OPPONENT_DISCONNECTED.ToString()))
@@ -159,17 +164,18 @@ public class ServerConnection : MonoBehaviour {
             secondPlayer = "No player";
             opponentInRoom = false;
             opponentIsReady = false;
-            
+            roomReset = true;
+            SetPlayerPicture(0);
+            playerTwoImageNumber = 0;
+            server.SendMessage(PACKET_TYPE.SET_PICTURE, playerOneImageNumber);
         }
         else if (tempstring.Contains(PACKET_TYPE.PLAYER_IS_READY.ToString()))
         {
             opponentIsReady = true;
-            //Debug.Log("Opponent ready");
         }
         else if (tempstring.Contains(PACKET_TYPE.PLAYER_UNREADY.ToString()))
         {
             opponentIsReady = false;
-            //Debug.Log("Opponent not ready");
         }
         else if (tempstring.Contains(PACKET_TYPE.START_GAME_SUCCESS.ToString()))
         {
@@ -180,8 +186,6 @@ public class ServerConnection : MonoBehaviour {
             inGame = true;
             receiveNewCurrentGamePacket = false;
             this.GetComponent<SceneChange>().ChangeScene(goToGameRoom);
-            //Debug.Log("Game success: " + tempstring);
-            //Debug.Log("Change to game already");
         }
         else if (tempstring.Contains(PACKET_TYPE.START_GAME_FAILURE.ToString()))
         {
@@ -229,6 +233,73 @@ public class ServerConnection : MonoBehaviour {
     public void UnSetAIGame()
     {
         server.SendMessage(PACKET_TYPE.UNSET_AI_GAME, "Setting AI Game");
+        playerTwoImageNumber = 0;
+    }
+
+    //Setting different images
+    public void SetPlayerPicture(int imageNumber)
+    {
+        server.SendMessage(PACKET_TYPE.SET_PICTURE, imageNumber);
+        if (isHost)
+            playerOneImageNumber = imageNumber;
+        else
+            playerTwoImageNumber = imageNumber;
+    }
+
+    public void SetAIPicture(int imageNumber)
+    {
+        server.SendMessage(PACKET_TYPE.SET_AI_PICTURE, imageNumber);
+        playerTwoImageNumber = imageNumber;
+    }
+
+    /// <summary>
+    /// Get player 1 image number
+    /// </summary>
+    /// <returns>
+    /// Returns a int value which you will need to use in game to know which array of the picture in the gameobject child
+    /// </returns>
+    public int GetPlayerOnePicture()
+    {
+        server.SendMessage(PACKET_TYPE.GET_PLAYER_ONE_PICTURE, "Get player 1 image");
+        string tempstring = "";
+        DateTime b = DateTime.Now.AddSeconds(3);
+        do
+        {
+            DateTime a = DateTime.Now;
+            tempstring = server.RecieveFromQueue();
+            if (a > b) //No result
+                return 0;
+        }
+        while (!tempstring.Contains(PACKET_TYPE.GET_PLAYER_ONE_PICTURE.ToString()));
+        //Debug.Log("Player 1 Image: " + tempstring);
+        tempstring = Unpack(tempstring);
+        Int32.TryParse(tempstring, out playerOneImageNumber);
+        return playerOneImageNumber;
+    }
+
+    /// <summary>
+    /// Get player 2 image number
+    /// </summary>
+    /// <returns>
+    /// Returns a int value which you will need to use in game to know which array of the picture in the gameobject child
+    /// </returns>
+    public int GetPlayerTwoPicture()
+    {
+        server.SendMessage(PACKET_TYPE.GET_PLAYER_TWO_PICTURE, "Get player 2 image");
+        string tempstring = "";
+        DateTime b = DateTime.Now.AddSeconds(3);
+        do
+        {
+            DateTime a = DateTime.Now;
+            tempstring = server.RecieveFromQueue();
+            if (a > b) //No result
+                return 0;
+        }
+        while (!tempstring.Contains(PACKET_TYPE.GET_PLAYER_TWO_PICTURE.ToString()));
+        tempstring = Unpack(tempstring);
+        Int32.TryParse(tempstring, out playerTwoImageNumber);
+        //Debug.Log("Player 2 Image: " + tempstring);
+        return playerTwoImageNumber;
     }
 
     //Send click location of board
@@ -271,15 +342,10 @@ public class ServerConnection : MonoBehaviour {
     {
         if(portNumber < 0)
         {
-            //if (showText)
-                //showText.StartCoroutine(showText.DisplayText("Invalid port numberl", 3));
             return;
         }
         //Display some text for user feedback
         cts_connection_status = ConnectionStatus.CONNECTING;
-        //if (showText)
-            //showText.StartCoroutine(showText.DisplayText("Connecting to server", 3));
-        //Try to connect to server if failed then return from function and change server to null again
         try
         {
             server = new ConnectionClass(serverIP, portNumber);
@@ -289,8 +355,6 @@ public class ServerConnection : MonoBehaviour {
             Debug.Log("Unable to connect");
             cts_connection_status = ConnectionStatus.NOT_CONNECTING;
             server = null;
-            //if (showText)
-                //showText.StartCoroutine(showText.DisplayText("Cannot connect to server try again", 3));
             return;
         }
         //Display some text for user feedback
@@ -299,9 +363,6 @@ public class ServerConnection : MonoBehaviour {
         PlayerPrefs.SetInt("ServerPort", portNumber);
         currentGame = server.CreateGameInformation();
         CopyData(currentGame);
-
-        //if (showText)
-            //showText.StartCoroutine(showText.DisplayText("Connection established", 3));
     }
 
     //Send set name to the server for recording
@@ -473,9 +534,9 @@ public class ServerConnection : MonoBehaviour {
         if (tempstring.Contains(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString()))
         {
             inRoom = true;
-            firstPlayer = tempstring;
             secondPlayer = userName;
             tempstring = Unpack(tempstring);
+            firstPlayer = tempstring;
             Debug.Log(tempstring + "(In JoinRoom)");
             opponentName = tempstring;
             this.gameObject.GetComponent<SceneChange>().ChangeScene(goToRoom);
