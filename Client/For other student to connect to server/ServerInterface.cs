@@ -683,5 +683,68 @@ public class ServerInterface : MonoBehaviour {
     {
         return GetComponent<ServerConnection>().GetRenjuRules();
     }
-#endregion
+    #endregion
+
+    #region Set player / Get player Image
+    /// <summary>
+    /// <para>
+    /// Set the image number for the player.
+    /// </para>
+    /// <para>
+    /// 플레이어의 이미지 번호 설정.
+    /// </para>
+    /// </summary>
+    public void SetplayerImage(int imageNumber)
+    {
+        GetComponent<ServerConnection>().SetPlayerPicture(imageNumber);
+    }
+    /// <summary>
+    /// <para>
+    /// Set the image number for the AI (For AI game(singleplayer) only).
+    /// </para>
+    /// <para>
+    /// AI (AI 게임 (싱글 플레이어) 전용)의 이미지 번호를 설정합니다.
+    /// </para>
+    /// </summary>
+    public void SetAIImage (int imageNumber)
+    {
+        GetComponent<ServerConnection>().SetAIPicture(imageNumber);
+    }
+    /// <summary>
+    /// <para>
+    /// Get the image of player 1
+    /// </para>
+    /// 플레이어 1의 이미지를 가져옵니다.
+    /// </summary>
+    /// <returns>
+    /// <para>
+    /// Returns a Int value of the picture number
+    /// </para>
+    /// <para>
+    /// 그림 번호의 Int 값을 반환합니다.
+    /// </para>
+    /// </returns>
+    public int GetPlayerOneImage()
+    {
+        return GetComponent<ServerConnection>().GetPlayerOnePicture();
+    }
+    /// <summary>
+    /// <para>
+    /// Get the image of player 2
+    /// </para>
+    /// 플레이어 2의 이미지보기
+    /// </summary>
+    /// <returns>
+    /// <para>
+    /// Returns a Int value of the picture number
+    /// </para>
+    /// <para>
+    /// 그림 번호의 Int 값을 반환합니다.
+    /// </para>
+    /// </returns>
+    public int GetPlayerTwoImage()
+    {
+        return GetComponent<ServerConnection>().GetPlayerTwoPicture();
+    }
+    #endregion
 }

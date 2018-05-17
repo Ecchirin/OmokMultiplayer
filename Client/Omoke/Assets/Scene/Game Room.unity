@@ -491,6 +491,7 @@ GameObject:
   - component: {fileID: 482163447}
   - component: {fileID: 482163449}
   - component: {fileID: 482163448}
+  - component: {fileID: 482163450}
   m_Layer: 5
   m_Name: Player 2 image
   m_TagString: Untagged
@@ -536,7 +537,7 @@ MonoBehaviour:
       m_Calls: []
     m_TypeName: UnityEngine.UI.MaskableGraphic+CullStateChangedEvent, UnityEngine.UI,
       Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
-  m_Texture: {fileID: 0}
+  m_Texture: {fileID: 2800000, guid: b58acca89cbb98e4ab0eebb8c10498d9, type: 3}
   m_UVRect:
     serializedVersion: 2
     x: 0
@@ -549,6 +550,25 @@ CanvasRenderer:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 482163446}
+--- !u!114 &482163450
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 482163446}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0de25e0b1aee2ed4aaeeea0bea80ad68, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  serverServiceTagName: ServerService
+  player1: 0
+  player2: 1
+  imageNumber: 0
+  image:
+  - {fileID: 2800000, guid: b58acca89cbb98e4ab0eebb8c10498d9, type: 3}
+  - {fileID: 2800000, guid: 01c03c7493d5fce40b0f257cc07dcd43, type: 3}
+  - {fileID: 2800000, guid: 5a60de977bf86c446ad9b032ea02d7f5, type: 3}
 --- !u!1 &499133890
 GameObject:
   m_ObjectHideFlags: 0
@@ -676,6 +696,7 @@ GameObject:
   - component: {fileID: 777159363}
   - component: {fileID: 777159365}
   - component: {fileID: 777159364}
+  - component: {fileID: 777159366}
   m_Layer: 5
   m_Name: Player 1 image
   m_TagString: Untagged
@@ -721,7 +742,7 @@ MonoBehaviour:
       m_Calls: []
     m_TypeName: UnityEngine.UI.MaskableGraphic+CullStateChangedEvent, UnityEngine.UI,
       Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
-  m_Texture: {fileID: 0}
+  m_Texture: {fileID: 2800000, guid: b58acca89cbb98e4ab0eebb8c10498d9, type: 3}
   m_UVRect:
     serializedVersion: 2
     x: 0
@@ -734,6 +755,25 @@ CanvasRenderer:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 777159362}
+--- !u!114 &777159366
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 777159362}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0de25e0b1aee2ed4aaeeea0bea80ad68, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  serverServiceTagName: ServerService
+  player1: 1
+  player2: 0
+  imageNumber: 0
+  image:
+  - {fileID: 2800000, guid: b58acca89cbb98e4ab0eebb8c10498d9, type: 3}
+  - {fileID: 2800000, guid: 01c03c7493d5fce40b0f257cc07dcd43, type: 3}
+  - {fileID: 2800000, guid: 5a60de977bf86c446ad9b032ea02d7f5, type: 3}
 --- !u!1 &830086566
 GameObject:
   m_ObjectHideFlags: 0
@@ -2106,6 +2146,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   prefabAI:
+  - {fileID: 1420092557395904, guid: ca4e8c4b91535d54a91942cb130da126, type: 2}
   - {fileID: 1420092557395904, guid: ca4e8c4b91535d54a91942cb130da126, type: 2}
   serverServiceTagName: ServerService
 --- !u!1 &2013500762
