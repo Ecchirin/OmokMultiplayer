@@ -68,14 +68,63 @@ namespace OmokServer
             Console.WriteLine("INITED");
         }
 
-        public int GetPlayerOnePicture()
+        public void GetPlayerOnePicture()
         {
-            return playerOnePicture;
+            byte[] data = new byte[1024];
+
+            Console.WriteLine("P1 Picture is : " + playerOnePicture);
+            //Send to host first
+            data = new byte[1024];
+            data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_PLAYER_ONE_PICTURE.ToString() + ":" +
+                playerOnePicture);
+            do
+            {
+                thePlayers.theHost.ns.Write(data, 0, data.Length);
+            }
+            while (!thePlayers.theHost.ns.CanWrite);
+
+            if (isAIGame)
+                return;
+
+            //Send to opponent
+            data = new byte[1024];
+            data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_PLAYER_ONE_PICTURE.ToString() + ":" +
+                playerOnePicture);
+            do
+            {
+                thePlayers.theOpponent.ns.Write(data, 0, data.Length);
+            }
+            while (!thePlayers.theOpponent.ns.CanWrite);
         }
 
-        public int GetPlayerTwoPicture()
+        public void GetPlayerTwoPicture()
         {
-            return playerTwoPicture;
+            byte[] data = new byte[1024];
+
+            Console.WriteLine("P2 Picture is : " + playerTwoPicture);
+
+            //Send to host first
+            data = new byte[1024];
+            data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_PLAYER_TWO_PICTURE.ToString() + ":" +
+                playerTwoPicture);
+            do
+            {
+                thePlayers.theHost.ns.Write(data, 0, data.Length);
+            }
+            while (!thePlayers.theHost.ns.CanWrite);
+
+            if (isAIGame)
+                return;
+
+            //Send to opponent
+            data = new byte[1024];
+            data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_PLAYER_TWO_PICTURE.ToString() + ":" +
+                playerTwoPicture);
+            do
+            {
+                thePlayers.theOpponent.ns.Write(data, 0, data.Length);
+            }
+            while (!thePlayers.theOpponent.ns.CanWrite);
         }
 
         int CheckPlacementOfMap(int x, int y)
@@ -665,15 +714,30 @@ namespace OmokServer
                     }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.FORCED_UPDATE.ToString()))
                     {
-                        gameSession.ForceUpdate();
+                        if (gameSession == null)
+                        {
+
+                        }
+                        else
+                            gameSession.ForceUpdate();
                     }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.GET_PLAYER_ONE_PICTURE.ToString()))
                     {
-                        gameSession.GetPlayerOnePicture();
+                        if (gameSession == null)
+                        {
+                            ThreadedTCPServer.GetPlayerOnePicture(this);
+                        }
+                        else
+                            gameSession.GetPlayerOnePicture();
                     }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.GET_PLAYER_TWO_PICTURE.ToString()))
                     {
-                        gameSession.GetPlayerTwoPicture();
+                        if (gameSession == null)
+                        {
+                            ThreadedTCPServer.GetPlayerTwoPicture(this);
+                        }
+                        else
+                            gameSession.GetPlayerTwoPicture();
                     }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.JOIN_ROOM_SPECTATE.ToString()))
                     {
@@ -737,6 +801,8 @@ namespace OmokServer
                         isReady = false;
                         inGame = false;
                         isSpectator = false;
+                        aiPicture = 1;
+                        myPicture = 0;
 
                         data = new byte[1024];
                         string targetName = fullPacketMessage.ToString().Substring(fullPacketMessage.ToString().IndexOf(":") + 1);
@@ -772,7 +838,8 @@ namespace OmokServer
                         inGame = false;
                         isSpectator = false;
                         hostMadeRenju = true;
-
+                        aiPicture = 1;
+                        myPicture = 0;
                     }
                     else if (fullPacketMessage.ToString().Contains(PACKET_TYPE.PLAYER_IS_READY.ToString()))
                     {
@@ -961,6 +1028,8 @@ namespace OmokServer
                         listOfOngoingGames.Remove(iter);
                         theReceiver.inLobby = true;
                         theReceiver.isReady = false;
+                        theReceiver.myPicture = 0;
+                        theReceiver.aiPicture = 1;
                     }
                     break;
                 }
@@ -972,6 +1041,8 @@ namespace OmokServer
                         listOfOngoingGames.Remove(iter);
                         theReceiver.inLobby = true;
                         theReceiver.isReady = false;
+                        theReceiver.myPicture = 0;
+                        theReceiver.aiPicture = 1;
                     }
                     break;
                 }
@@ -996,6 +1067,8 @@ namespace OmokServer
                             theReceiver.isReady = false;
                             theSender.isReady = false;
                             theReceiver.hostMadeRenju = theSender.hostMadeRenju = true;
+                            theReceiver.aiPicture = theSender.aiPicture = 1;
+                            theReceiver.myPicture = theSender.myPicture = 0;
                         }
                         else if (thePacketHeader == PACKET_TYPE.OPPONENT_DISCONNECTED)
                         {
@@ -1089,6 +1162,8 @@ namespace OmokServer
                     data = Encoding.ASCII.GetBytes(PACKET_TYPE.JOIN_ROOM_SUCCESS.ToString() + ":" + theSender.clientName);
                     theReceiver.isReady = false;
                     theSender.isReady = false;
+                    theReceiver.myPicture = theSender.myPicture = 0;
+                    theReceiver.aiPicture = theSender.aiPicture = 1;
                     Console.WriteLine(theSender.clientName + " Connected to the room of " + theReceiver.clientName);
                 }
                 else if (thePacketHeader == PACKET_TYPE.LEAVE_ROOM)
@@ -1307,6 +1382,42 @@ namespace OmokServer
                 }
             }
             return false;
+        }
+
+        public static void GetPlayerOnePicture(ConnectionThread theSender)
+        {
+            foreach (GameInformation iter in listOfOngoingGames)
+            {
+                foreach (ConnectionThread spectator in iter.listOfSpectators)
+                {
+                    if (spectator.clientName == theSender.clientName)
+                    {
+                        byte[] data = new byte[1024];
+                        data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_PLAYER_ONE_PICTURE.ToString() + ":" +
+                            iter.thePlayers.theHost.myPicture);
+
+                        spectator.ns.Write(data, 0, data.Length);
+                    }
+                }
+            }
+        }
+
+        public static void GetPlayerTwoPicture(ConnectionThread theSender)
+        {
+            foreach (GameInformation iter in listOfOngoingGames)
+            {
+                foreach (ConnectionThread spectator in iter.listOfSpectators)
+                {
+                    if (spectator.clientName == theSender.clientName)
+                    {
+                        byte[] data = new byte[1024];
+                        data = Encoding.ASCII.GetBytes(PACKET_TYPE.GET_PLAYER_TWO_PICTURE.ToString() + ":" +
+                            iter.thePlayers.theOpponent.myPicture);
+
+                        spectator.ns.Write(data, 0, data.Length);
+                    }
+                }
+            }
         }
 
         public static bool JoinSpectateRoom(string targetName, ConnectionThread joiningPlayer)
